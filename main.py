@@ -12,11 +12,8 @@ clie = Client(socket.gethostname(), port)
 
 server_thread = threading.Thread(target=serv.start)
 server_thread.start()
-client_thread = threading.Thread(target=clie.start)
-client_thread.start()
-print("After starting")
 
-time.sleep(1)
+clie.start()  # main thread in the client
+
 serv.stop()
-clie.stop()
 print("Stopped all services")

@@ -21,7 +21,14 @@ class Server:
             try:
                 connection, addr = self.__socket.accept()
                 print("Got connection from", addr)
-                connection.send(b"Thank you for your connection")
+                while True:
+                    msg = connection.recv(256).decode("utf-8", "strict")
+                    if msg != "":
+                        print("Message received: ", msg)
+
+                    if self.__should_stop.get():
+                        break
+
                 connection.close()
             except Exception:
                 break

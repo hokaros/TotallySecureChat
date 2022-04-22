@@ -15,10 +15,13 @@ class Client:
         sock.connect((self.server_ip, self.server_port))
 
         print(f"Client connected to {self.server_ip}:{self.server_port}")
+        print("[Type a message to send it. Type \"quit\" to close]")
         while True:
-            msg = sock.recv(256)
-            if msg != b'':
-                print(msg)
+            msg = input()
+            if msg == "quit":
+                break
+
+            sock.send(bytearray(msg.encode("utf-8")))
 
             if self.__should_stop.get():
                 break
