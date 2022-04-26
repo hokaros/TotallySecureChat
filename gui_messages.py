@@ -1,3 +1,6 @@
+from typing import List, Tuple
+
+
 MESSAGES_ON_SCREEN = 5
 
 
@@ -24,14 +27,17 @@ class MessageDisplayer:
         self.window = window
         self.user_id = user_id
 
-        self.message_history = [Message(1, "No siema"), Message(2, "Joł, co tam?"), Message(1, "JHD"), Message(2, "JHD")]
+        self.message_history: List[Message] = []
 
         self.current_top_message = len(self.message_history) - MESSAGES_ON_SCREEN
         if self.current_top_message < 0:
             self.current_top_message = 0
 
     def on_send(self, msg):
-        self.message_history.append(Message(self.user_id, msg))
+        self.receive_message(msg, self.user_id)
+
+    def receive_message(self, msg, sender_id):
+        self.message_history.append(Message(sender_id, msg))
 
         if len(self.message_history) > MESSAGES_ON_SCREEN:
             self.current_top_message += 1

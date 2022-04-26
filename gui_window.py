@@ -15,6 +15,9 @@ class ChatWindow:
     def subscribe_message_send(self, callback: Callable[[str], None]):
         self.__on_message_send.append(callback)
 
+    def receive_message(self, msg, sender_id):
+        self.message_displayer.receive_message(msg, sender_id)
+
     def run(self):
         while True:
             event, values = self.__window.read()
