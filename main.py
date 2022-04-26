@@ -1,6 +1,7 @@
 import socket
 import threading
 import sys
+import time
 
 from server import Server
 from client import Client
@@ -18,16 +19,17 @@ else:
     user_id = 1
 
 # TODO: get addresses from a database
-receive_port = int((input("Podaj port odbierania: ")))
-dest_port = int(input("Podaj port docelowy: "))
+receive_port = int((input("Receiving port: ")))
 
 serv = Server(receive_port)
 serv.subscribe_message_received(receive_message)
-clie = Client(socket.gethostname(), dest_port)
 
 server_thread = threading.Thread(target=serv.start)
 server_thread.start()
 
+time.sleep(0.1)
+dest_port = int(input("Target port: "))
+clie = Client(socket.gethostname(), dest_port)
 input("Press enter to connect\n")
 clie.start()
 
