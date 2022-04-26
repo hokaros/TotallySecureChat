@@ -1,4 +1,5 @@
 import socket
+from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
 
@@ -8,6 +9,11 @@ class Server:
         self.port = port
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
+
+        self.__on_message_received = []
+
+    def subscribe_message_received(self, callback: Callable[[str], None]):
+        self.__on_message_received.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -25,6 +31,7 @@ class Server:
                     msg = connection.recv(256).decode("utf-8", "strict")
                     if msg != "":
                         print("Message received: ", msg)
+                        self.__invoke_message_received(msg)
 
                     if self.__should_stop.get():
                         break
@@ -42,3 +49,7 @@ class Server:
     def stop(self):
         self.__socket.close()
         self.__should_stop.set(True)
+
+    def __invoke_message_received(self, msg: str):
+        for callback in self.__on_message_received:
+            callback(msg)
