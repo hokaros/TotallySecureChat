@@ -13,7 +13,7 @@ class Server:
 
         self.__on_message_received = []
 
-    def subscribe_message_received(self, callback: Callable[[str], None]):
+    def subscribe_message_received(self, callback: Callable[[Message], None]):
         self.__on_message_received.append(callback)
 
     def start(self):
@@ -32,9 +32,7 @@ class Server:
                     bytes = connection.recv(256)
                     if len(bytes) != 0:
                         msg = Message.from_bytes(bytes)
-                        msg_text = msg.stringbody()
-                        print("Message received: ", msg_text)
-                        self.__invoke_message_received(msg_text)
+                        self.__invoke_message_received(msg)
 
                     if self.__should_stop.get():
                         break
@@ -53,6 +51,6 @@ class Server:
         self.__socket.close()
         self.__should_stop.set(True)
 
-    def __invoke_message_received(self, msg: str):
+    def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:
             callback(msg)

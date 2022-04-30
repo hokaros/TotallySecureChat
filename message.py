@@ -1,6 +1,8 @@
 from enum import Enum
-import json
-from copy import deepcopy
+
+
+SENDER_ID_BYTES = 4
+MESSAGE_TYPE_BYTES = 1
 
 
 class MessageType(Enum):
@@ -16,7 +18,8 @@ class MessageType(Enum):
 
 # Low-level self representation
 class Message:
-    def __init__(self, type: MessageType, body: bytearray):
+    def __init__(self, sender_id: int, type: MessageType, body: bytearray):
+        self.sender_id = sender_id
         self.type = type
         self.body = body
 
@@ -25,20 +28,29 @@ class Message:
         return self.body.decode("utf-8", "strict")
 
     def to_bytes(self) -> bytearray:
-        b = bytearray(self.type.value)
+        b = self.sender_id.to_bytes(SENDER_ID_BYTES, "little")
+        b = bytearray(b)
+        b.extend(self.type.value.to_bytes(MESSAGE_TYPE_BYTES, "little"))
         b.extend(self.body)
         return b
 
     @staticmethod
     def from_bytes(bytes: bytes):
-        msg_type = MessageType(bytes[0])
-        msg_body = bytearray(bytes[1:])
-        return Message(msg_type, msg_body)
+        byte_cursor = 0
+
+        msg_sender_id = int.from_bytes(bytes[byte_cursor : byte_cursor + SENDER_ID_BYTES], "little")
+        byte_cursor += SENDER_ID_BYTES
+
+        msg_type = MessageType(int.from_bytes(bytes[byte_cursor : byte_cursor + MESSAGE_TYPE_BYTES], "little"))
+        byte_cursor += MESSAGE_TYPE_BYTES
+
+        msg_body = bytearray(bytes[byte_cursor:])
+        return Message(msg_sender_id, msg_type, msg_body)
 
     @classmethod
-    def text_message(cls, text: str):
+    def text_message(cls, sender_id: int, text: str):
         bytes = bytearray(text, "utf-8")
-        return cls(MessageType.TEXT_MESSAGE, bytes)
+        return cls(sender_id, MessageType.TEXT_MESSAGE, bytes)
 
 
 # Responsible for encrypting and decrypting

@@ -6,20 +6,18 @@ import time
 from server import Server
 from client import Client
 from gui_window import ChatWindow
+from message import Message
 
 
-def receive_message(msg):
-    window.receive_message(msg, 2)  # always assume sender id = 2
+def receive_message(msg: Message):
+    print(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
+    window.receive_message(msg.stringbody(), msg.sender_id)
 
-
-# TODO: get user id from a database
-if len(sys.argv) > 1:
-    user_id = int(sys.argv[1])
-else:
-    user_id = 1
 
 # TODO: get addresses from a database
 receive_port = int((input("Receiving port: ")))
+# TODO: get user id from a database
+user_id = receive_port
 
 serv = Server(receive_port)
 serv.subscribe_message_received(receive_message)
@@ -29,7 +27,7 @@ server_thread.start()
 
 time.sleep(0.1)
 dest_port = int(input("Target port: "))
-clie = Client(socket.gethostname(), dest_port)
+clie = Client(user_id, socket.gethostname(), dest_port)
 input("Press enter to connect\n")
 clie.start()
 

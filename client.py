@@ -6,7 +6,8 @@ from message import Message
 
 
 class Client:
-    def __init__(self, server_ip, server_port):
+    def __init__(self, self_id, server_ip, server_port):
+        self.self_id = self_id
         self.server_ip = server_ip
         self.server_port = server_port
         self.__socket = None
@@ -25,7 +26,7 @@ class Client:
         print(f"Client connected to {self.server_ip}:{self.server_port}")
 
     def send(self, msg: str):
-        bytes = Message.text_message(msg).to_bytes()
+        bytes = Message.text_message(self.self_id, msg).to_bytes()
         self.__socket.send(bytes)
 
         self.__invoke_message_sent(msg)

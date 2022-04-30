@@ -5,19 +5,20 @@ MESSAGES_ON_SCREEN = 5
 
 
 class GuiMessage:
-    def __init__(self, _author, _text) -> None:
+    def __init__(self, client_id, _author, _text) -> None:
+        self.__client_id = client_id
         self.author = _author
         self.text = _text
 
     def getColor(self):
-        if self.author == 1:
-            return "#006697"
+        if self.author == self.__client_id:
+            return "#006697"  # For our own messages
         else:
             return "#00324d"
 
     def getLeftPad(self):
-        if self.author == 1:
-            return 5
+        if self.author == self.__client_id:
+            return 5  # For our own messages
         else:
             return 20
 
@@ -37,7 +38,7 @@ class MessageDisplayer:
         self.receive_message(msg, self.user_id)
 
     def receive_message(self, msg, sender_id):
-        self.message_history.append(GuiMessage(sender_id, msg))
+        self.message_history.append(GuiMessage(self.user_id, sender_id, msg))
 
         if len(self.message_history) > MESSAGES_ON_SCREEN:
             self.current_top_message += 1
