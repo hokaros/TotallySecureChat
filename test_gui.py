@@ -3,7 +3,7 @@ import sys
 
 
 def send_message(msg):
-    print("Message sent: ", msg)
+    print("GuiMessage sent: ", msg)
     pass  # TODO: implement sending
 
 

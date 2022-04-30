@@ -2,6 +2,7 @@ import socket
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
+from message import Message
 
 
 class Client:
@@ -23,8 +24,10 @@ class Client:
 
         print(f"Client connected to {self.server_ip}:{self.server_port}")
 
-    def send(self, msg):
-        self.__socket.send(bytearray(msg.encode("utf-8")))
+    def send(self, msg: str):
+        bytes = Message.text_message(msg).to_bytes()
+        self.__socket.send(bytes)
+
         self.__invoke_message_sent(msg)
 
     def stop(self):

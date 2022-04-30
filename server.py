@@ -2,6 +2,7 @@ import socket
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
+from message import Message
 
 
 class Server:
@@ -28,10 +29,12 @@ class Server:
                 connection, addr = self.__socket.accept()
                 print("Got connection from", addr)
                 while True:
-                    msg = connection.recv(256).decode("utf-8", "strict")
-                    if msg != "":
-                        print("Message received: ", msg)
-                        self.__invoke_message_received(msg)
+                    bytes = connection.recv(256)
+                    if len(bytes) != 0:
+                        msg = Message.from_bytes(bytes)
+                        msg_text = msg.stringbody()
+                        print("Message received: ", msg_text)
+                        self.__invoke_message_received(msg_text)
 
                     if self.__should_stop.get():
                         break
