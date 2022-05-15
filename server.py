@@ -2,17 +2,17 @@ import socket
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
-from message import Message
+from message import Message, MessageType
 from encryption import MessageEncryptor
 
 
 class Server:
-    def __init__(self, port: int, session_key):
+    def __init__(self, port: int):
         self.port = port
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
 
-        self.__msg_encryptor = MessageEncryptor(session_key)
+        self.__msg_encryptor = MessageEncryptor()
 
         self.__on_message_received = []
 
@@ -33,11 +33,7 @@ class Server:
                 print("Got connection from", addr)
                 while True:
                     bytes = connection.recv(256)
-                    if len(bytes) != 0:
-                        msg = Message.from_bytes(bytes)
-                        msg.body = self.__msg_encryptor.decrypt(msg.body)
-
-                        self.__invoke_message_received(msg)
+                    self.__on_bytes_received(bytes)
 
                     if self.__should_stop.get():
                         break
@@ -55,6 +51,24 @@ class Server:
     def stop(self):
         self.__socket.close()
         self.__should_stop.set(True)
+
+    def __on_bytes_received(self, bytes: bytes):
+        print(f"Received {len(bytes)} bytes")
+        if len(bytes) == 0:
+            return
+
+        msg = Message.from_bytes(bytes)
+        try:
+            self.__msg_encryptor.decrypt(msg)
+        except ValueError:
+            print("Key incorrect or message corrupted")
+            return
+
+        if msg.type == MessageType.TEXT_MESSAGE:
+            self.__invoke_message_received(msg)
+        elif msg.type == MessageType.SESSION_KEY:
+            print("New session key: ", msg.body)
+            self.__msg_encryptor.session_key = msg.body
 
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:

@@ -26,8 +26,8 @@ class EncryptionTestCase(unittest.TestCase):
         encryptor = MessageEncryptor(get_random_bytes(16))
 
         # Act
-        encrypted_msg = encryptor.encrypt(msg)
-        out_msg = encryptor.decrypt(encrypted_msg)
+        encrypted_msg = encryptor.encrypt_bytes(msg)
+        out_msg = encryptor.decrypt_bytes(encrypted_msg)
 
         # Assert
         self.assertEqual(msg, out_msg)

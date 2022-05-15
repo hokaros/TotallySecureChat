@@ -4,7 +4,7 @@ import sys
 
 def send_message(msg):
     print("GuiMessage sent: ", msg)
-    pass  # TODO: implement sending
+    pass
 
 
 # Get user id from commandline - only for testing purpose

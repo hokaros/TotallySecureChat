@@ -1,4 +1,6 @@
 from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from message import Message, MessageType
 
 
 class EncryptedMessage:
@@ -45,19 +47,39 @@ class EncryptedMessage:
 
 
 class MessageEncryptor:
-    def __init__(self, session_key):
-        self.session_key = session_key
-        pass
+    SESSION_KEY_SIZE = 16
 
-    def encrypt(self, msg: bytes) -> bytes:
+    def __init__(self, session_key=None):
+        if session_key is None:
+            session_key = get_random_bytes(self.SESSION_KEY_SIZE)
+        self.session_key = session_key
+
+    def encrypt_bytes(self, msg: bytes) -> bytes:
+        # TODO: different ciphering modes
         cipher = AES.new(self.session_key, AES.MODE_EAX)
         ciphertext, tag = cipher.encrypt_and_digest(msg)
 
         return EncryptedMessage(ciphertext, tag, cipher.nonce).to_bytes()
 
-    def decrypt(self, msg: bytes) -> bytes:
+    def decrypt_bytes(self, msg: bytes) -> bytes:
         encrypted_msg = EncryptedMessage.from_bytes(msg)
 
         cipher = AES.new(self.session_key, AES.MODE_EAX, nonce=encrypted_msg.nonce)
         plaintext = cipher.decrypt_and_verify(encrypted_msg.ciphertext, encrypted_msg.tag)
         return plaintext
+
+    def encrypt(self, msg: Message) -> None:
+        if msg.type == MessageType.SESSION_KEY:
+            pass  # TODO: implement encrypting with public key
+        else:
+            msg.body = self.encrypt_bytes(msg.body)
+
+    def decrypt(self, msg: Message) -> None:
+        if msg.type == MessageType.SESSION_KEY:
+            pass  # TODO: implement decrypting with private key
+        else:
+            msg.body = self.decrypt_bytes(msg.body)
+
+    @staticmethod
+    def generate_session_key() -> bytes:
+        return get_random_bytes(MessageEncryptor.SESSION_KEY_SIZE)

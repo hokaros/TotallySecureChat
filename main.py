@@ -19,9 +19,7 @@ receive_port = int((input("Receiving port: ")))
 # TODO: get user id from a database
 user_id = receive_port
 
-session_key = b'\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab\xac\xad\xae\xaf'
-
-serv = Server(receive_port, session_key)
+serv = Server(receive_port)
 serv.subscribe_message_received(receive_message)
 
 server_thread = threading.Thread(target=serv.start)
@@ -29,13 +27,13 @@ server_thread.start()
 
 time.sleep(0.1)
 dest_port = int(input("Target port: "))
-clie = Client(user_id, socket.gethostname(), dest_port, session_key)
+clie = Client(user_id, socket.gethostname(), dest_port)
 input("Press enter to connect\n")
 clie.start()
 
 # Run GUI
 window = ChatWindow(user_id)
-window.subscribe_message_send(clie.send)
+window.subscribe_message_send(clie.send_text)
 
 window.run()
 window.close()
