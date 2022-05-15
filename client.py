@@ -1,16 +1,20 @@
 import socket
+from Crypto.Cipher import AES
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
 from message import Message
+from encryption import MessageEncryptor
 
 
 class Client:
-    def __init__(self, self_id, server_ip, server_port):
+    def __init__(self, self_id, server_ip, server_port, session_key):
         self.self_id = self_id
         self.server_ip = server_ip
         self.server_port = server_port
         self.__socket = None
+
+        self.__msg_encryptor = MessageEncryptor(session_key)
 
         self.__should_stop = ThreadSafeVariable(False)
 
@@ -26,10 +30,24 @@ class Client:
         print(f"Client connected to {self.server_ip}:{self.server_port}")
 
     def send(self, msg: str):
-        bytes = Message.text_message(self.self_id, msg).to_bytes()
+        text_msg = Message.text_message(self.self_id, msg)
+        text_msg.body = self.__msg_encryptor.encrypt(text_msg.body)
+
+        bytes = text_msg.to_bytes()
         self.__socket.send(bytes)
 
         self.__invoke_message_sent(msg)
+
+    def encrypt(self, msg: bytes) -> bytes:
+        session_key = b"abcdefghi"
+
+        cipher = AES.new(session_key, AES.MODE_CFB)
+        ciphertext, tag = cipher.encrypt_and_digest(msg)
+        out_bytes = cipher.nonce
+
+        out_bytes.extend(tag)
+        out_bytes.extend(ciphertext)
+        return out_bytes
 
     def stop(self):
         self.__socket.close()

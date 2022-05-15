@@ -3,13 +3,16 @@ from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
 from message import Message
+from encryption import MessageEncryptor
 
 
 class Server:
-    def __init__(self, port: int):
+    def __init__(self, port: int, session_key):
         self.port = port
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
+
+        self.__msg_encryptor = MessageEncryptor(session_key)
 
         self.__on_message_received = []
 
@@ -32,6 +35,8 @@ class Server:
                     bytes = connection.recv(256)
                     if len(bytes) != 0:
                         msg = Message.from_bytes(bytes)
+                        msg.body = self.__msg_encryptor.decrypt(msg.body)
+
                         self.__invoke_message_received(msg)
 
                     if self.__should_stop.get():
@@ -50,6 +55,11 @@ class Server:
     def stop(self):
         self.__socket.close()
         self.__should_stop.set(True)
+
+    def decrypt(self, msg):
+        session_key = b"abcdefghi"
+
+
 
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:

@@ -51,9 +51,3 @@ class Message:
     def text_message(cls, sender_id: int, text: str):
         bytes = bytearray(text, "utf-8")
         return cls(sender_id, MessageType.TEXT_MESSAGE, bytes)
-
-
-# Responsible for encrypting and decrypting
-class MessageEncryptor:
-    def __init__(self):
-        pass #TODO
