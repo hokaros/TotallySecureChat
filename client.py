@@ -1,5 +1,4 @@
 import socket
-from Crypto.Cipher import AES
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
@@ -37,17 +36,6 @@ class Client:
         self.__socket.send(bytes)
 
         self.__invoke_message_sent(msg)
-
-    def encrypt(self, msg: bytes) -> bytes:
-        session_key = b"abcdefghi"
-
-        cipher = AES.new(session_key, AES.MODE_CFB)
-        ciphertext, tag = cipher.encrypt_and_digest(msg)
-        out_bytes = cipher.nonce
-
-        out_bytes.extend(tag)
-        out_bytes.extend(ciphertext)
-        return out_bytes
 
     def stop(self):
         self.__socket.close()

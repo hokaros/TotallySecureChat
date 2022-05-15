@@ -56,11 +56,6 @@ class Server:
         self.__socket.close()
         self.__should_stop.set(True)
 
-    def decrypt(self, msg):
-        session_key = b"abcdefghi"
-
-
-
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:
             callback(msg)
