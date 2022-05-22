@@ -16,12 +16,13 @@ class MessageType(Enum):
     TEXT_MESSAGE = 1
 
 
-# Low-level self representation
+# Low-level message representation
 class Message:
-    def __init__(self, sender_id: int, type: MessageType, body: bytearray):
+    def __init__(self, sender_id: int, type: MessageType, body: bytearray, receiver_id=None):
         self.sender_id = sender_id
         self.type = type
         self.body = body
+        self.receiver_id = receiver_id
 
     def stringbody(self) -> str:
         """Returns the body as a string"""
@@ -51,3 +52,7 @@ class Message:
     def text_message(cls, sender_id: int, text: str):
         bytes = bytearray(text, "utf-8")
         return cls(sender_id, MessageType.TEXT_MESSAGE, bytes)
+
+    @classmethod
+    def session_key(cls, sender_id, session_key: bytearray, receiver_id):
+        return cls(sender_id, MessageType.SESSION_KEY, session_key, receiver_id=receiver_id)

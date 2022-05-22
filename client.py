@@ -8,13 +8,13 @@ from Crypto.Random import get_random_bytes
 
 
 class Client:
-    def __init__(self, self_id, server_ip, server_port):
+    def __init__(self, self_id, server_ip, server_port, username, password):
         self.self_id = self_id
         self.server_ip = server_ip
         self.server_port = server_port
         self.__socket = None
 
-        self.__msg_encryptor = MessageEncryptor()
+        self.__msg_encryptor = MessageEncryptor(username, password)
         self.__first_message = True  # tmp
 
         self.__should_stop = ThreadSafeVariable(False)
@@ -52,12 +52,12 @@ class Client:
     def __send_session_key(self):
         session_key = MessageEncryptor.generate_session_key()
 
-        msg = Message(self.self_id, MessageType.SESSION_KEY, bytearray(session_key))
+        receiver_id = str(self.server_port)
+        msg = Message.session_key(self.self_id, bytearray(session_key), receiver_id)
         self.__send(msg)
         print("Sent session key: ", session_key)
 
         self.__msg_encryptor.session_key = session_key
-
 
     def __invoke_message_sent(self, msg: str):
         for callback in self.__on_message_sent:

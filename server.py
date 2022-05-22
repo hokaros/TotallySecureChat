@@ -7,12 +7,12 @@ from encryption import MessageEncryptor
 
 
 class Server:
-    def __init__(self, port: int):
+    def __init__(self, port: int, username, password):
         self.port = port
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
 
-        self.__msg_encryptor = MessageEncryptor()
+        self.__msg_encryptor = MessageEncryptor(username, password)
 
         self.__on_message_received = []
 
@@ -32,7 +32,7 @@ class Server:
                 connection, addr = self.__socket.accept()
                 print("Got connection from", addr)
                 while True:
-                    bytes = connection.recv(256)
+                    bytes = connection.recv(1024)
                     self.__on_bytes_received(bytes)
 
                     if self.__should_stop.get():

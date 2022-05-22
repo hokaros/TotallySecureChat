@@ -1,6 +1,7 @@
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from message import Message, MessageType
+from pki_manager import PkiManager
 
 
 class EncryptedMessage:
@@ -49,10 +50,13 @@ class EncryptedMessage:
 class MessageEncryptor:
     SESSION_KEY_SIZE = 16
 
-    def __init__(self, session_key=None):
+    def __init__(self, user_id: str = "", password: str = "", session_key=None):
         if session_key is None:
             session_key = get_random_bytes(self.SESSION_KEY_SIZE)
         self.session_key = session_key
+
+        if user_id != "":
+            self.__pki = PkiManager(user_id, password)
 
     def encrypt_bytes(self, msg: bytes) -> bytes:
         # TODO: different ciphering modes
@@ -68,15 +72,23 @@ class MessageEncryptor:
         plaintext = cipher.decrypt_and_verify(encrypted_msg.ciphertext, encrypted_msg.tag)
         return plaintext
 
+    def encrypt_with_public(self, msg: bytes, receiver_id: str) -> bytes:
+        key = PkiManager.load_public_key(receiver_id)
+        return PKCS1_OAEP.new(key).encrypt(msg)
+
+    def decrypt_with_private(self, msg: bytes) -> bytes:
+        key = self.__pki.private_key
+        return PKCS1_OAEP.new(key).decrypt(msg)
+
     def encrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
-            pass  # TODO: implement encrypting with public key
+            msg.body = self.encrypt_with_public(msg.body, msg.receiver_id)
         else:
             msg.body = self.encrypt_bytes(msg.body)
 
     def decrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
-            pass  # TODO: implement decrypting with private key
+            msg.body = self.decrypt_with_private(msg.body)
         else:
             msg.body = self.decrypt_bytes(msg.body)
 

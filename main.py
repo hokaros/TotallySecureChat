@@ -19,7 +19,11 @@ receive_port = int((input("Receiving port: ")))
 # TODO: get user id from a database
 user_id = receive_port
 
-serv = Server(receive_port)
+# TODO: get password from the user
+username = str(user_id)
+password = str(user_id)
+
+serv = Server(receive_port, username, password)
 serv.subscribe_message_received(receive_message)
 
 server_thread = threading.Thread(target=serv.start)
@@ -27,7 +31,7 @@ server_thread.start()
 
 time.sleep(0.1)
 dest_port = int(input("Target port: "))
-clie = Client(user_id, socket.gethostname(), dest_port)
+clie = Client(user_id, socket.gethostname(), dest_port, username, password)
 input("Press enter to connect\n")
 clie.start()
 
