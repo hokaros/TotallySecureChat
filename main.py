@@ -14,16 +14,12 @@ def receive_message(msg: Message):
     window.receive_message(msg.stringbody(), msg.sender_id)
 
 
-# TODO: get addresses from a database
 receive_port = int((input("Receiving port: ")))
-# TODO: get user id from a database
 user_id = receive_port
 
-# TODO: get password from the user
-username = str(user_id)
-password = str(user_id)
+password = input("Password: ")
 
-serv = Server(receive_port, username, password)
+serv = Server(receive_port, user_id, password)
 serv.subscribe_message_received(receive_message)
 
 server_thread = threading.Thread(target=serv.start)
@@ -31,7 +27,7 @@ server_thread.start()
 
 time.sleep(0.1)
 dest_port = int(input("Target port: "))
-clie = Client(user_id, socket.gethostname(), dest_port, username, password)
+clie = Client(user_id, socket.gethostname(), dest_port, password)
 input("Press enter to connect\n")
 clie.start()
 

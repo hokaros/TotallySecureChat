@@ -69,7 +69,7 @@ class MessageEncryptor:
         encrypted_msg = EncryptedMessage.from_bytes(msg)
 
         cipher = AES.new(self.session_key, AES.MODE_EAX, nonce=encrypted_msg.nonce)
-        plaintext = cipher.decrypt_and_verify(encrypted_msg.ciphertext, encrypted_msg.tag)
+        plaintext = cipher.decrypt(encrypted_msg.ciphertext)
         return plaintext
 
     def encrypt_with_public(self, msg: bytes, receiver_id: str) -> bytes:
@@ -77,8 +77,10 @@ class MessageEncryptor:
         return PKCS1_OAEP.new(key).encrypt(msg)
 
     def decrypt_with_private(self, msg: bytes) -> bytes:
-        key = self.__pki.private_key
-        return PKCS1_OAEP.new(key).decrypt(msg)
+        try:
+            return PKCS1_OAEP.new(self.__pki.private_key).decrypt(msg)
+        except ValueError:
+            return get_random_bytes(self.SESSION_KEY_SIZE)
 
     def encrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:

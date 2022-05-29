@@ -46,7 +46,7 @@ class PkiManager:
         key = RSA.generate(KEY_LENGTH)
         private_encrypted = key.export_key(passphrase=password_hash)
 
-        # Safe to files
+        # Save to files
         private_file = PkiManager.private_key_filepath(self.__user_id)
         with open(private_file, "wb") as f:
             f.write(private_encrypted)
@@ -71,7 +71,10 @@ class PkiManager:
                 self.__password.encode("utf-8", "strict")
             ).hexdigest()
 
-            key = RSA.import_key(f.read(), passphrase=password_hash)
+            try:
+                key = RSA.import_key(f.read(), passphrase=password_hash)
+            except ValueError:
+                key = RSA.generate(KEY_LENGTH)  # Random key
             self.__private_key = key
 
             self.class_lock.release()

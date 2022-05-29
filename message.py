@@ -26,7 +26,7 @@ class Message:
 
     def stringbody(self) -> str:
         """Returns the body as a string"""
-        return self.body.decode("utf-8", "strict")
+        return self.body.decode("utf-8", "ignore")
 
     def to_bytes(self) -> bytearray:
         b = self.sender_id.to_bytes(SENDER_ID_BYTES, "little")

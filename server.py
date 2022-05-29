@@ -7,12 +7,12 @@ from encryption import MessageEncryptor
 
 
 class Server:
-    def __init__(self, port: int, username, password):
+    def __init__(self, port: int, user_id: int, password):
         self.port = port
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
 
-        self.__msg_encryptor = MessageEncryptor(username, password)
+        self.__msg_encryptor = MessageEncryptor(str(user_id), password)
 
         self.__on_message_received = []
 

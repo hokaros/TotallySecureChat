@@ -8,13 +8,13 @@ from Crypto.Random import get_random_bytes
 
 
 class Client:
-    def __init__(self, self_id, server_ip, server_port, username, password):
+    def __init__(self, self_id: int, server_ip, server_port, password):
         self.self_id = self_id
         self.server_ip = server_ip
         self.server_port = server_port
         self.__socket = None
 
-        self.__msg_encryptor = MessageEncryptor(username, password)
+        self.__msg_encryptor = MessageEncryptor(str(self_id), password)
         self.__first_message = True  # tmp
 
         self.__should_stop = ThreadSafeVariable(False)
