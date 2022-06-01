@@ -47,7 +47,7 @@ class ChatWindow:
             [sg.Text(text="DżejEs&EjEl Software")]
         ]
 
-        window = sg.Window('Wyjątkowo Bezpieczny Komunikator', layout, font = ('Segoe UI Light', 16))
+        window = sg.Window('Totally Secure Chat', layout, font = ('Segoe UI Light', 16))
         window.finalize()
         return window
 
