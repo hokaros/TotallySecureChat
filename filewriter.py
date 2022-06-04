@@ -16,5 +16,5 @@ class FileWriter:
         open(os.path.join(self.directory, self.file_name), "x")
 
     def write(self, content):
-        with open(os.path.join(self.directory, self.file_name)) as file:
+        with open(os.path.join(self.directory, self.file_name), "ab") as file:
             file.write(content)
