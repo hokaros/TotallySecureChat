@@ -13,11 +13,12 @@ class FileWriter:
     def create_file(self, file_name):
         print("create file")
         self.file_name = file_name
-        try:
-            open(os.path.join(self.directory, self.file_name), "x")
-        except FileExistsError:
+        path = os.path.join(self.directory, self.file_name)
+        if os.path.exists(path):
             print(f"File {self.file_name} already exists")
-            pass
+            os.remove(path)
+
+        open(path, "x")
 
     def write(self, content):
         with open(os.path.join(self.directory, self.file_name), "ab") as file:
