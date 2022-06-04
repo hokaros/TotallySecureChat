@@ -15,9 +15,17 @@ class Server:
         self.__msg_encryptor = MessageEncryptor(username, password)
 
         self.__on_message_received = []
+        self.__on_file_name_received = []
+        self.__on_file_received = []
 
     def subscribe_message_received(self, callback: Callable[[Message], None]):
         self.__on_message_received.append(callback)
+
+    def subscribe_file_received(self, callback: Callable[[Message], None]):
+        self.__on_file_received.append(callback)
+
+    def subscribe_file_name_received(self, callback: Callable[[Message], None]):
+        self.__on_file_name_received.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -69,7 +77,21 @@ class Server:
         elif msg.type == MessageType.SESSION_KEY:
             print("New session key: ", msg.body)
             self.__msg_encryptor.session_key = msg.body
+        elif msg.type == MessageType.FILE_NAME_MESSAGE:
+            print("New file coming: ", msg.body)
+            self.__invoke_file_name_received(msg)
+        elif msg.type == MessageType.FILE_MESSAGE:
+            print("New file content: ", msg.body)
+            self.__invoke_file_received(msg)
 
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:
             callback(msg)
+
+    def __invoke_file_received(self, file: Message):
+        for callback in self.__on_file_received:
+            callback(file)
+
+    def __invoke_file_name_received(self, file: Message):
+        for callback in self.__on_file_name_received:
+            callback(file)

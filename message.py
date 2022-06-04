@@ -3,6 +3,7 @@ from enum import Enum
 
 SENDER_ID_BYTES = 4
 MESSAGE_TYPE_BYTES = 1
+FILE_MESSAGE_LEN = 64  # the length of file message segment in bytes
 
 
 class MessageType(Enum):
@@ -14,6 +15,15 @@ class MessageType(Enum):
     # Text self:
     # -> body can be decrypted using a valid session key
     TEXT_MESSAGE = 1
+
+    # File message:
+    # -> body can be decrypted using a valid session key
+    # -> needs to be transferred in parts
+    FILE_MESSAGE = 2
+
+    # File name message:
+    # -> body is a name of a file
+    FILE_NAME_MESSAGE = 3
 
 
 # Low-level message representation
@@ -36,6 +46,10 @@ class Message:
         return b
 
     @staticmethod
+    def file_message_len():
+        return FILE_MESSAGE_LEN
+
+    @staticmethod
     def from_bytes(bytes: bytes):
         byte_cursor = 0
 
@@ -52,6 +66,14 @@ class Message:
     def text_message(cls, sender_id: int, text: str):
         bytes = bytearray(text, "utf-8")
         return cls(sender_id, MessageType.TEXT_MESSAGE, bytes)
+
+    @classmethod
+    def file_message(cls, sender_id: int, body: bytearray):
+        return cls(sender_id, MessageType.FILE_MESSAGE, body)
+
+    @classmethod
+    def file_name_message(cls, sender_id: int, body: bytearray):
+        return cls(sender_id, MessageType.FILE_NAME_MESSAGE, body)
 
     @classmethod
     def session_key(cls, sender_id, session_key: bytearray, receiver_id):
