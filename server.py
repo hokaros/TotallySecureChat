@@ -61,11 +61,14 @@ class Server:
         self.__should_stop.set(True)
 
     def __on_bytes_received(self, bytes: bytes):
-        print(f"Received {len(bytes)} bytes")
         if len(bytes) == 0:
             return
 
-        msg = Message.from_bytes(bytes)
+        print(f"Received {len(bytes)} bytes")
+        for msg in Message.multiple_from_bytes(bytes):
+            self.__receive_message(msg)
+
+    def __receive_message(self, msg: Message):
         try:
             self.__msg_encryptor.decrypt(msg)
         except ValueError:

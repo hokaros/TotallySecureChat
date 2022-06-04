@@ -57,7 +57,7 @@ class Client:
         filename_str = filepath.split('/')[-1]
         filename = bytearray(filename_str, "utf-8")
 
-        with open(filepath, 'r') as f:
+        with open(filepath, 'rb') as f:
             # sending file name
             file_name_msg = Message.file_name_message(self.self_id, filename)
             self.__send(file_name_msg)
@@ -65,8 +65,7 @@ class Client:
             print(f"message {file_name_msg} sent")
 
             # sending content of the actual file
-            content_str = f.read()
-            content = bytearray(content_str, "utf-8")
+            content = f.read()
             print(f"the file is {len(content)} bytes long")
             full_segments_n = len(content)//Message.file_message_len()
 

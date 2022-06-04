@@ -1,8 +1,10 @@
 from enum import Enum
+from typing import List
 
 
 SENDER_ID_BYTES = 4
 MESSAGE_TYPE_BYTES = 1
+MESSAGE_LENGTH_BYTES = 4
 FILE_MESSAGE_LEN = 64  # the length of file message segment in bytes
 
 
@@ -36,14 +38,20 @@ class Message:
 
     def stringbody(self) -> str:
         """Returns the body as a string"""
-        return self.body.decode("utf-8", "strict")
+        return bytes(self.body).decode("utf-8", "ignore")
 
     def to_bytes(self) -> bytearray:
         b = self.sender_id.to_bytes(SENDER_ID_BYTES, "little")
         b = bytearray(b)
         b.extend(self.type.value.to_bytes(MESSAGE_TYPE_BYTES, "little"))
+        b.extend(self.bytes_size.to_bytes(MESSAGE_LENGTH_BYTES, "little"))
+        print("Length: ", self.bytes_size)
         b.extend(self.body)
         return b
+
+    @property
+    def bytes_size(self) -> int:
+        return SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + MESSAGE_LENGTH_BYTES + len(self.body)
 
     @staticmethod
     def file_message_len():
@@ -59,8 +67,31 @@ class Message:
         msg_type = MessageType(int.from_bytes(bytes[byte_cursor : byte_cursor + MESSAGE_TYPE_BYTES], "little"))
         byte_cursor += MESSAGE_TYPE_BYTES
 
+        # no need to read message length, because we consume all the bytes
+        byte_cursor += MESSAGE_LENGTH_BYTES
+
         msg_body = bytearray(bytes[byte_cursor:])
         return Message(msg_sender_id, msg_type, msg_body)
+
+    @staticmethod
+    def multiple_from_bytes(bytes: bytes):
+        messages = []
+
+        while len(bytes) > 0:
+            fst_msg_size = Message.__read_first_message_length(bytes)
+            fst_message_bytes = bytes[0:fst_msg_size]
+
+            messages.append(Message.from_bytes(fst_message_bytes))
+
+            bytes = bytes[fst_msg_size:]
+
+        return messages
+
+    @staticmethod
+    def __read_first_message_length(bytes: bytes) -> int:
+        start_index = SENDER_ID_BYTES + MESSAGE_TYPE_BYTES
+        length_bytes = bytes[start_index : start_index + MESSAGE_LENGTH_BYTES]
+        return int.from_bytes(length_bytes, "little")
 
     @classmethod
     def text_message(cls, sender_id: int, text: str):
