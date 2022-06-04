@@ -12,6 +12,8 @@ class Server:
         self.__should_stop = ThreadSafeVariable(False)
         self.__socket = None
 
+        self.__receive_buffer = bytearray()
+
         self.__msg_encryptor = MessageEncryptor(username, password)
 
         self.__on_message_received = []
@@ -65,8 +67,14 @@ class Server:
             return
 
         print(f"Received {len(bytes)} bytes")
-        for msg in Message.multiple_from_bytes(bytes):
+        self.__receive_buffer.extend(bytes)
+
+        # Consume from the buffer
+        messages, remaining_bytes = Message.multiple_from_bytes(self.__receive_buffer)
+        for msg in messages:
             self.__receive_message(msg)
+
+        self.__receive_buffer = remaining_bytes
 
     def __receive_message(self, msg: Message):
         try:

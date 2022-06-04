@@ -42,7 +42,7 @@ class MessageConvertingTestCase(unittest.TestCase):
         for msg in messages:
             b_sum.extend(msg.to_bytes())
 
-        out_messages = Message.multiple_from_bytes(b_sum)
+        out_messages, remainders = Message.multiple_from_bytes(b_sum)
         out_strings = [
             msg.stringbody()
             for msg in out_messages

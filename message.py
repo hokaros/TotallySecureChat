@@ -74,24 +74,35 @@ class Message:
         return Message(msg_sender_id, msg_type, msg_body)
 
     @staticmethod
-    def multiple_from_bytes(bytes: bytes):
+    def multiple_from_bytes(bytes: bytes | bytearray):
+        """Consumes maximum count of messages. Returns them and the unconsumed bytes"""
         messages = []
 
-        while len(bytes) > 0:
-            fst_msg_size = Message.__read_first_message_length(bytes)
-            fst_message_bytes = bytes[0:fst_msg_size]
+        while Message.can_read_length(bytes):
+            fst_msg_size = Message.read_first_message_length(bytes)
+            if len(bytes) < fst_msg_size:
+                break
 
+            # Enough bytes to read a message
+            fst_message_bytes = bytes[0:fst_msg_size]
             messages.append(Message.from_bytes(fst_message_bytes))
 
             bytes = bytes[fst_msg_size:]
 
-        return messages
+        return messages, bytes
 
     @staticmethod
-    def __read_first_message_length(bytes: bytes) -> int:
+    def read_first_message_length(bytes: bytes) -> int:
         start_index = SENDER_ID_BYTES + MESSAGE_TYPE_BYTES
         length_bytes = bytes[start_index : start_index + MESSAGE_LENGTH_BYTES]
         return int.from_bytes(length_bytes, "little")
+
+    @staticmethod
+    def can_read_length(bytes) -> bool:
+        """Tells if the bytes are long enough to contain info about message length"""
+        if len(bytes) >= SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + MESSAGE_LENGTH_BYTES:
+            return True
+        return False
 
     @classmethod
     def text_message(cls, sender_id: int, text: str):
