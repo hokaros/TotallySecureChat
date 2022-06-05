@@ -20,6 +20,7 @@ class Client:
         self.__should_stop = ThreadSafeVariable(False)
 
         self.__on_message_sent = []
+        self.__on_file_sent = []
 
     def subscribe_message_sent(self, callback: Callable[[str], None]):
         self.__on_message_sent.append(callback)
@@ -29,6 +30,9 @@ class Client:
 
     def use_cbc(self):
         self.__msg_encryptor.use_cbc()
+
+    def subscribe_file_sent(self, callback: Callable[[str], None]):
+        self.__on_file_sent.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -51,6 +55,38 @@ class Client:
 
         self.__invoke_message_sent(msg)
 
+    def send_file(self, filepath: str):
+        if self.__first_message:
+            self.__send_session_key()
+            self.__first_message = False
+
+        filename_str = filepath.split('/')[-1]
+        filename = bytearray(filename_str, "utf-8")
+
+        with open(filepath, 'rb') as f:
+            # sending file name
+            file_name_msg = Message.file_name_message(self.self_id, filename)
+            self.__send(file_name_msg)
+            self.__invoke_file_sent(file_name_msg)
+            print(f"message {file_name_msg} sent")
+
+            # sending content of the actual file
+            content = f.read()
+            print(f"the file is {len(content)} bytes long")
+            full_segments_n = len(content)//Message.file_message_len()
+
+            for segment in range(full_segments_n):
+                msg_content = content[segment*Message.file_message_len():(segment+1)*Message.file_message_len()]
+                print(f"segment {segment}: {msg_content}")
+                file_msg = Message.file_message(self.self_id, msg_content)
+                self.__send(file_msg)
+
+            msg_content = content[full_segments_n*Message.file_message_len():]
+            if len(msg_content) > 0:
+                print(f"last segment: {msg_content}")
+                file_msg = Message.file_message(self.self_id, msg_content)
+                self.__send(file_msg)
+
     def __send(self, msg: Message):
         self.__msg_encryptor.encrypt(msg)
         self.__socket.send(msg.to_bytes())
@@ -67,4 +103,8 @@ class Client:
 
     def __invoke_message_sent(self, msg: str):
         for callback in self.__on_message_sent:
+            callback(msg)
+
+    def __invoke_file_sent(self, msg:str):
+        for callback in self.__on_file_sent:
             callback(msg)

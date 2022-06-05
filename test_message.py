@@ -25,6 +25,34 @@ class MessageConvertingTestCase(unittest.TestCase):
         # Assert
         assert out_msg.body == original_body
 
+    def test_multiple_from_bytes(self):
+        # Arrange
+        in_strings = [
+            "Stół z powyłamywanymi nogami",
+            "Zażółć gęślą jaźń",
+            "Blat"
+        ]
+        messages = [
+            Message.text_message(0, string)
+            for string in in_strings
+        ]
+
+        # Act
+        b_sum = bytearray()
+        for msg in messages:
+            b_sum.extend(msg.to_bytes())
+
+        out_messages, remainders = Message.multiple_from_bytes(b_sum)
+        out_strings = [
+            msg.stringbody()
+            for msg in out_messages
+        ]
+
+        # Assert
+        self.assertEqual(len(in_strings), len(out_strings))
+        for expected, actual in zip(in_strings, out_strings):
+            self.assertEqual(expected, actual)
+
 
 if __name__ == '__main__':
     unittest.main()

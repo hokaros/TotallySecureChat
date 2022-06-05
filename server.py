@@ -13,11 +13,20 @@ class Server:
         self.__socket = None
 
         self.__msg_encryptor = MessageEncryptor(str(user_id), password)
+        self.__receive_buffer = bytearray()
 
         self.__on_message_received = []
+        self.__on_file_name_received = []
+        self.__on_file_received = []
 
     def subscribe_message_received(self, callback: Callable[[Message], None]):
         self.__on_message_received.append(callback)
+
+    def subscribe_file_received(self, callback: Callable[[Message], None]):
+        self.__on_file_received.append(callback)
+
+    def subscribe_file_name_received(self, callback: Callable[[Message], None]):
+        self.__on_file_name_received.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -53,11 +62,20 @@ class Server:
         self.__should_stop.set(True)
 
     def __on_bytes_received(self, bytes: bytes):
-        print(f"Received {len(bytes)} bytes")
         if len(bytes) == 0:
             return
 
-        msg = Message.from_bytes(bytes)
+        print(f"Received {len(bytes)} bytes")
+        self.__receive_buffer.extend(bytes)
+
+        # Consume from the buffer
+        messages, remaining_bytes = Message.multiple_from_bytes(self.__receive_buffer)
+        for msg in messages:
+            self.__receive_message(msg)
+
+        self.__receive_buffer = remaining_bytes
+
+    def __receive_message(self, msg: Message):
         try:
             self.__msg_encryptor.decrypt(msg)
         except ValueError:
@@ -68,7 +86,21 @@ class Server:
         elif msg.type == MessageType.SESSION_KEY:
             print("New session key: ", msg.body)
             self.__msg_encryptor.session_key = msg.body
+        elif msg.type == MessageType.FILE_NAME_MESSAGE:
+            print("New file coming: ", msg.body)
+            self.__invoke_file_name_received(msg)
+        elif msg.type == MessageType.FILE_MESSAGE:
+            print("New file content: ", msg.body)
+            self.__invoke_file_received(msg)
 
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:
             callback(msg)
+
+    def __invoke_file_received(self, file: Message):
+        for callback in self.__on_file_received:
+            callback(file)
+
+    def __invoke_file_name_received(self, file: Message):
+        for callback in self.__on_file_name_received:
+            callback(file)

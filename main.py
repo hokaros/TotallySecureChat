@@ -1,3 +1,4 @@
+import os.path
 import socket
 import threading
 import sys
@@ -7,6 +8,7 @@ from server import Server
 from client import Client
 from gui_window import ChatWindow
 from message import Message
+from filewriter import FileWriter
 
 
 def receive_message(msg: Message):
@@ -28,13 +30,27 @@ def choose_encryption_mode(client):
         print("Unrecognised encryption mode")
 
 
+def receive_file_name(msg: Message):
+    print(f"File message received from user {msg.sender_id}: {msg.stringbody()}")
+    window.receive_message(msg.stringbody(), msg.sender_id)
+    filewri.create_file(msg.stringbody())
+
+
+def receive_file(msg: Message):
+    print(f"File message content received from user {msg.sender_id}: {msg.stringbody()}")
+    filewri.write(msg.body)
+
+
 receive_port = int((input("Receiving port: ")))
 user_id = receive_port
 
+username = str(user_id)
 password = input("Password: ")
 
 serv = Server(receive_port, user_id, password)
 serv.subscribe_message_received(receive_message)
+serv.subscribe_file_name_received(receive_file_name)
+serv.subscribe_file_received(receive_file)
 
 server_thread = threading.Thread(target=serv.start)
 server_thread.start()
@@ -45,12 +61,15 @@ clie = Client(user_id, socket.gethostname(), dest_port, password)
 
 choose_encryption_mode(clie)
 
+filewri = FileWriter(os.path.join("downloaded", username))
+
 input("Press enter to connect\n")
 clie.start()
 
 # Run GUI
 window = ChatWindow(user_id)
 window.subscribe_message_send(clie.send_text)
+window.subscribe_file_send(clie.send_file)
 
 window.run()
 window.close()
@@ -60,4 +79,3 @@ window.close()
 clie.stop()
 serv.stop()
 print("Stopped all services")
-

@@ -37,8 +37,19 @@ class MessageDisplayer:
     def on_send(self, msg):
         self.receive_message(msg, self.user_id)
 
+    def on_file_send(self, filepath):
+        self.receive_file(filepath, self.user_id)
+
     def receive_message(self, msg, sender_id):
         self.message_history.append(GuiMessage(self.user_id, sender_id, msg))
+
+        if len(self.message_history) > MESSAGES_ON_SCREEN:
+            self.current_top_message += 1
+
+        self.display_messages()
+
+    def receive_file(self, filename, sender_id):
+        self.message_history.append(GuiMessage(self.user_id, sender_id, filename))
 
         if len(self.message_history) > MESSAGES_ON_SCREEN:
             self.current_top_message += 1
