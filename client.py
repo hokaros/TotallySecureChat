@@ -15,7 +15,6 @@ class Client:
         self.__socket = None
 
         self.__msg_encryptor = MessageEncryptor(str(self_id), password)
-        self.__first_message = True  # tmp
 
         self.__should_stop = ThreadSafeVariable(False)
 
@@ -46,9 +45,7 @@ class Client:
         print(f"Client disconnected")
 
     def send_text(self, msg: str):
-        if self.__first_message:
-            self.__send_session_key()
-            self.__first_message = False
+        self.__send_session_key()
 
         text_msg = Message.text_message(self.self_id, msg)
         self.__send(text_msg)
@@ -56,9 +53,7 @@ class Client:
         self.__invoke_message_sent(msg)
 
     def send_file(self, filepath: str):
-        if self.__first_message:
-            self.__send_session_key()
-            self.__first_message = False
+        self.__send_session_key()
 
         filename_str = filepath.split('/')[-1]
         filename = bytearray(filename_str, "utf-8")
