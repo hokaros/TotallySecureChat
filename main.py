@@ -12,23 +12,16 @@ from gui_login import LoginWindow
 from filewriter import FileWriter
 
 
-
 def receive_message(msg: Message):
     print(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
 
+
 def choose_encryption_mode(client):
-    while True:
-        selected_mode = input(f"Choose encryption mode (ECB or CBC):")
-
-        if selected_mode.lower() == "ecb":
-            client.use_ecb()
-            return
-        elif selected_mode.lower() == "cbc":
-            client.use_cbc()
-            return
-
-        print("Unrecognised encryption mode")
+    if credentials["ecb"]:
+        client.use_ecb()
+    elif credentials["cbc"]:
+        client.use_cbc()
 
 
 def receive_file_name(msg: Message):
@@ -41,14 +34,14 @@ def receive_file(msg: Message):
     print(f"File message content received from user {msg.sender_id}: {msg.stringbody()}")
     filewri.write(msg.body)
 
-credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None}
-
 
 def login(input: dict):
     global credentials
     for key in input:
         credentials[key] = input[key]
 
+
+credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_":None}
 
 login_window = LoginWindow()
 login_window.subscribe_confirm(login)
