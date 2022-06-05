@@ -8,26 +8,52 @@ from pki_manager import PkiManager
 class EncryptedMessage:
     NUM_SIZE = 4
 
-    def __init__(self, ciphertext: bytes):
+    def __init__(self, ciphertext: bytes, cipher_mode, block_size: int):
         self.ciphertext = ciphertext
+        self.cipher_mode = cipher_mode
+        self.block_size = block_size
 
     def to_bytes(self) -> bytes:
-        return self.ciphertext
+        b = bytearray(
+            self.cipher_mode.to_bytes(self.NUM_SIZE, "little")
+        )
+        b.extend(self.block_size.to_bytes(self.NUM_SIZE, "little"))
+
+        b.extend(self.ciphertext)
+
+        return b
 
     @classmethod
     def from_bytes(cls, b: bytes):
-        return cls(b)
+        byte_cursor = 0
+
+        cipher_mode = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
+        byte_cursor += cls.NUM_SIZE
+
+        block_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
+        byte_cursor += cls.NUM_SIZE
+
+        ciphertext = b[byte_cursor:]
+
+        return cls(ciphertext, cipher_mode, block_size)
+
+    @classmethod
+    def read_mode(cls, b: bytes):
+        return int.from_bytes(b[0:cls.NUM_SIZE], "little")
 
 
 class CbcEncryptedMessage(EncryptedMessage):
-    def __init__(self, ciphertext: bytes, iv: bytes):
-        super().__init__(ciphertext)
+    def __init__(self, ciphertext: bytes, cipher_mode, block_size: int, iv: bytes):
+        super().__init__(ciphertext, cipher_mode, block_size)
         self.iv = iv
 
     def to_bytes(self) -> bytes:
         b = bytearray(
-            len(self.iv).to_bytes(self.NUM_SIZE, "little")
+            self.cipher_mode.to_bytes(self.NUM_SIZE, "little")
         )
+        b.extend(self.block_size.to_bytes(self.NUM_SIZE, "little"))
+
+        b.extend(len(self.iv).to_bytes(self.NUM_SIZE, "little"))
         b.extend(self.iv)
 
         b.extend(self.ciphertext)
@@ -38,6 +64,12 @@ class CbcEncryptedMessage(EncryptedMessage):
     def from_bytes(cls, b: bytes):
         byte_cursor = 0
 
+        cipher_mode = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
+        byte_cursor += cls.NUM_SIZE
+
+        block_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
+        byte_cursor += cls.NUM_SIZE
+
         iv_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
         byte_cursor += cls.NUM_SIZE
 
@@ -46,16 +78,16 @@ class CbcEncryptedMessage(EncryptedMessage):
 
         ciphertext = b[byte_cursor:]
 
-        return cls(ciphertext, iv)
+        return cls(ciphertext, cipher_mode, block_size, iv)
 
 
 class EncryptedMessageFactory:
     @staticmethod
     def build(ciphertext: bytes, mode, cipher) -> EncryptedMessage:
         if mode == AES.MODE_CBC:
-            return CbcEncryptedMessage(ciphertext, cipher.iv)
+            return CbcEncryptedMessage(ciphertext, mode, AES.block_size, cipher.iv)
         elif mode == AES.MODE_ECB:
-            return EncryptedMessage(ciphertext)
+            return EncryptedMessage(ciphertext, mode, AES.block_size)
 
         raise NotImplementedError(f"Encryption mode {mode} not supported")
 
@@ -94,16 +126,18 @@ class MessageEncryptor:
         return EncryptedMessageFactory.build(ciphertext, self.__mode, cipher).to_bytes()
 
     def decrypt_bytes(self, msg: bytes) -> bytes:
-        if self.__mode == AES.MODE_CBC:
+        mode = EncryptedMessage.read_mode(msg)
+
+        if mode == AES.MODE_CBC:
             encrypted_msg = CbcEncryptedMessage.from_bytes(msg)
-            cipher = AES.new(self.session_key, self.__mode, iv=encrypted_msg.iv)
+            cipher = AES.new(self.session_key, mode, iv=encrypted_msg.iv)
         else:
             encrypted_msg = EncryptedMessage.from_bytes(msg)
-            cipher = AES.new(self.session_key, self.__mode)
+            cipher = AES.new(self.session_key, mode)
 
         plaintext = cipher.decrypt(encrypted_msg.ciphertext)
         try:
-            plaintext = unpad(plaintext, AES.block_size)
+            plaintext = unpad(plaintext, encrypted_msg.block_size)
         except ValueError:
             pass
         return plaintext

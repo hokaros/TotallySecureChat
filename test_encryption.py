@@ -9,7 +9,7 @@ class EncryptionTestCase(unittest.TestCase):
         # Arrange
         ciphertext = b'\x00\xff\x00\xff'
         iv = b'\xaa\xaa\xaa'
-        msg = CbcEncryptedMessage(ciphertext, iv)
+        msg = CbcEncryptedMessage(ciphertext, AES.MODE_CBC, AES.block_size, iv)
 
         # Act
         b = msg.to_bytes()
@@ -41,6 +41,42 @@ class EncryptionTestCase(unittest.TestCase):
         # Act
         encrypted_msg = encryptor.encrypt_bytes(msg)
         out_msg = encryptor.decrypt_bytes(encrypted_msg)
+
+        # Assert
+        self.assertEqual(msg, out_msg)
+
+    def test_encrypt_ecb_decrypt_cbc(self):
+        # Arrange
+        msg = bytearray("Stół z powyłamywanymi nogami", "utf-8")
+        session_key = get_random_bytes(16)
+
+        encryptor = MessageEncryptor("", "", session_key=session_key)
+        encryptor.use_ecb()
+
+        decryptor = MessageEncryptor("", "", session_key=session_key)
+        decryptor.use_cbc()
+
+        # Act
+        encrypted_msg = encryptor.encrypt_bytes(msg)
+        out_msg = decryptor.decrypt_bytes(encrypted_msg)
+
+        # Assert
+        self.assertEqual(msg, out_msg)
+
+    def test_encrypt_cbc_decrypt_ecb(self):
+        # Arrange
+        msg = bytearray("Stół z powyłamywanymi nogami", "utf-8")
+        session_key = get_random_bytes(16)
+
+        encryptor = MessageEncryptor("", "", session_key=session_key)
+        encryptor.use_cbc()
+
+        decryptor = MessageEncryptor("", "", session_key=session_key)
+        decryptor.use_ecb()
+
+        # Act
+        encrypted_msg = encryptor.encrypt_bytes(msg)
+        out_msg = decryptor.decrypt_bytes(encrypted_msg)
 
         # Assert
         self.assertEqual(msg, out_msg)
