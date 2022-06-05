@@ -14,6 +14,22 @@ def receive_message(msg: Message):
     window.receive_message(msg.stringbody(), msg.sender_id)
 
 
+def choose_encryption_mode(server, client):
+    while True:
+        selected_mode = input(f"Choose encryption mode (ECB or CBC):")
+
+        if selected_mode.lower() == "ecb":
+            server.use_ecb()
+            client.use_ecb()
+            return
+        elif selected_mode.lower() == "cbc":
+            server.use_cbc()
+            client.use_cbc()
+            return
+
+        print("Unrecognised encryption mode")
+
+
 receive_port = int((input("Receiving port: ")))
 user_id = receive_port
 
@@ -28,6 +44,9 @@ server_thread.start()
 time.sleep(0.1)
 dest_port = int(input("Target port: "))
 clie = Client(user_id, socket.gethostname(), dest_port, password)
+
+choose_encryption_mode(serv, clie)
+
 input("Press enter to connect\n")
 clie.start()
 

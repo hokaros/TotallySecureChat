@@ -19,6 +19,12 @@ class Server:
     def subscribe_message_received(self, callback: Callable[[Message], None]):
         self.__on_message_received.append(callback)
 
+    def use_ecb(self):
+        self.__msg_encryptor.use_ecb()
+
+    def use_cbc(self):
+        self.__msg_encryptor.use_cbc()
+
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         host = socket.gethostname()
@@ -62,7 +68,6 @@ class Server:
             self.__msg_encryptor.decrypt(msg)
         except ValueError:
             print("Key incorrect or message corrupted")
-            return
 
         if msg.type == MessageType.TEXT_MESSAGE:
             self.__invoke_message_received(msg)

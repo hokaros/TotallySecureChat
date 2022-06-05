@@ -24,6 +24,12 @@ class Client:
     def subscribe_message_sent(self, callback: Callable[[str], None]):
         self.__on_message_sent.append(callback)
 
+    def use_ecb(self):
+        self.__msg_encryptor.use_ecb()
+
+    def use_cbc(self):
+        self.__msg_encryptor.use_cbc()
+
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.__socket.connect((self.server_ip, self.server_port))

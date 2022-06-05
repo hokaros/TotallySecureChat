@@ -1,5 +1,6 @@
 from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
 from message import Message, MessageType
 from pki_manager import PkiManager
 
@@ -7,21 +8,27 @@ from pki_manager import PkiManager
 class EncryptedMessage:
     NUM_SIZE = 4
 
-    def __init__(self, ciphertext: bytes, tag: bytes, nonce: bytes):
+    def __init__(self, ciphertext: bytes):
         self.ciphertext = ciphertext
-        self.tag = tag
-        self.nonce = nonce
+
+    def to_bytes(self) -> bytes:
+        return self.ciphertext
+
+    @classmethod
+    def from_bytes(cls, b: bytes):
+        return cls(b)
+
+
+class CbcEncryptedMessage(EncryptedMessage):
+    def __init__(self, ciphertext: bytes, iv: bytes):
+        super().__init__(ciphertext)
+        self.iv = iv
 
     def to_bytes(self) -> bytes:
         b = bytearray(
-            len(self.tag).to_bytes(self.NUM_SIZE, "little")
+            len(self.iv).to_bytes(self.NUM_SIZE, "little")
         )
-        b.extend(self.tag)
-
-        b.extend(
-            len(self.nonce).to_bytes(self.NUM_SIZE, "little")
-        )
-        b.extend(self.nonce)
+        b.extend(self.iv)
 
         b.extend(self.ciphertext)
 
@@ -30,27 +37,36 @@ class EncryptedMessage:
     @classmethod
     def from_bytes(cls, b: bytes):
         byte_cursor = 0
-        tag_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
+
+        iv_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
         byte_cursor += cls.NUM_SIZE
 
-        tag = b[byte_cursor:byte_cursor + tag_size]
-        byte_cursor += tag_size
-
-        nonce_size = int.from_bytes(b[byte_cursor:byte_cursor + cls.NUM_SIZE], "little")
-        byte_cursor += cls.NUM_SIZE
-
-        nonce = b[byte_cursor:byte_cursor + nonce_size]
-        byte_cursor += nonce_size
+        iv = b[byte_cursor:byte_cursor + iv_size]
+        byte_cursor += iv_size
 
         ciphertext = b[byte_cursor:]
 
-        return cls(ciphertext, tag, nonce)
+        return cls(ciphertext, iv)
+
+
+class EncryptedMessageFactory:
+    @staticmethod
+    def build(ciphertext: bytes, mode, cipher) -> EncryptedMessage:
+        if mode == AES.MODE_CBC:
+            return CbcEncryptedMessage(ciphertext, cipher.iv)
+        elif mode == AES.MODE_ECB:
+            return EncryptedMessage(ciphertext)
+
+        raise NotImplementedError(f"Encryption mode {mode} not supported")
 
 
 class MessageEncryptor:
     SESSION_KEY_SIZE = 16
+    IV_SIZE = 16
 
     def __init__(self, user_id: str = "", password: str = "", session_key=None):
+        self.__mode = AES.MODE_ECB
+
         if session_key is None:
             session_key = get_random_bytes(self.SESSION_KEY_SIZE)
         self.session_key = session_key
@@ -58,18 +74,38 @@ class MessageEncryptor:
         if user_id != "":
             self.__pki = PkiManager(user_id, password)
 
-    def encrypt_bytes(self, msg: bytes) -> bytes:
-        # TODO: different ciphering modes
-        cipher = AES.new(self.session_key, AES.MODE_EAX)
-        ciphertext, tag = cipher.encrypt_and_digest(msg)
+    def use_ecb(self):
+        self.__mode = AES.MODE_ECB
 
-        return EncryptedMessage(ciphertext, tag, cipher.nonce).to_bytes()
+    def use_cbc(self):
+        self.__mode = AES.MODE_CBC
+
+    def encrypt_bytes(self, msg: bytes) -> bytes:
+        if self.__mode == AES.MODE_CBC:
+            iv = get_random_bytes(self.IV_SIZE)
+            cipher = AES.new(self.session_key, self.__mode, iv)
+        else:
+            cipher = AES.new(self.session_key, self.__mode)
+
+        msg = pad(msg, AES.block_size)
+
+        ciphertext = cipher.encrypt(msg)
+
+        return EncryptedMessageFactory.build(ciphertext, self.__mode, cipher).to_bytes()
 
     def decrypt_bytes(self, msg: bytes) -> bytes:
-        encrypted_msg = EncryptedMessage.from_bytes(msg)
+        if self.__mode == AES.MODE_CBC:
+            encrypted_msg = CbcEncryptedMessage.from_bytes(msg)
+            cipher = AES.new(self.session_key, self.__mode, iv=encrypted_msg.iv)
+        else:
+            encrypted_msg = EncryptedMessage.from_bytes(msg)
+            cipher = AES.new(self.session_key, self.__mode)
 
-        cipher = AES.new(self.session_key, AES.MODE_EAX, nonce=encrypted_msg.nonce)
         plaintext = cipher.decrypt(encrypted_msg.ciphertext)
+        try:
+            plaintext = unpad(plaintext, AES.block_size)
+        except ValueError:
+            pass
         return plaintext
 
     def encrypt_with_public(self, msg: bytes, receiver_id: str) -> bytes:

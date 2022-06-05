@@ -8,23 +8,35 @@ class EncryptionTestCase(unittest.TestCase):
     def test_bytes_convert_deconvert_equal(self):
         # Arrange
         ciphertext = b'\x00\xff\x00\xff'
-        tag = b'\xff\xff\xff\xff\xff\xff'
-        nonce = b'\xaa\xaa\xaa'
-        msg = EncryptedMessage(ciphertext, tag, nonce)
+        iv = b'\xaa\xaa\xaa'
+        msg = CbcEncryptedMessage(ciphertext, iv)
 
         # Act
         b = msg.to_bytes()
-        out_msg = EncryptedMessage.from_bytes(b)
+        out_msg = CbcEncryptedMessage.from_bytes(b)
 
         # Assert
         self.assertEqual(msg.ciphertext, out_msg.ciphertext)
-        self.assertEqual(msg.tag, out_msg.tag)
-        self.assertEqual(msg.nonce, out_msg.nonce)
+        self.assertEqual(msg.iv, out_msg.iv)
 
-    def test_encrypt_decrypt_equal(self):
+    def test_encrypt_decrypt_equal_ecb(self):
         # Arrange
         msg = bytearray("Stół z powyłamywanymi nogami", "utf-8")
         encryptor = MessageEncryptor("", "", session_key=get_random_bytes(16))
+        encryptor.use_ecb()
+
+        # Act
+        encrypted_msg = encryptor.encrypt_bytes(msg)
+        out_msg = encryptor.decrypt_bytes(encrypted_msg)
+
+        # Assert
+        self.assertEqual(msg, out_msg)
+
+    def test_encrypt_decrypt_equal_cbc(self):
+        # Arrange
+        msg = bytearray("Stół z powyłamywanymi nogami", "utf-8")
+        encryptor = MessageEncryptor("", "", session_key=get_random_bytes(16))
+        encryptor.use_cbc()
 
         # Act
         encrypted_msg = encryptor.encrypt_bytes(msg)
