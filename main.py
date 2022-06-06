@@ -9,6 +9,7 @@ from client import Client
 from gui_window import ChatWindow
 from message import Message
 from filewriter import FileWriter, UserDirectory
+from Crypto.Cipher import AES
 
 
 def receive_message(msg: Message):
@@ -16,16 +17,14 @@ def receive_message(msg: Message):
     window.receive_message(msg.stringbody(), msg.sender_id)
 
 
-def choose_encryption_mode(client):
+def choose_encryption_mode() -> AES.MODE_CBC | AES.MODE_ECB:
     while True:
         selected_mode = input(f"Choose encryption mode (ECB or CBC):")
 
         if selected_mode.lower() == "ecb":
-            client.use_ecb()
-            return
+            return AES.MODE_ECB
         elif selected_mode.lower() == "cbc":
-            client.use_cbc()
-            return
+            return AES.MODE_CBC
 
         print("Unrecognised encryption mode")
 
@@ -46,6 +45,8 @@ user_id = receive_port
 
 username = str(user_id)
 password = input("Password: ")
+dest_port = int(input("Target port: "))
+encryption_mode = choose_encryption_mode()
 
 UserDirectory.main = UserDirectory(user_id)
 filewri = FileWriter(os.path.join(UserDirectory.main.directory, "downloaded"))
@@ -60,12 +61,9 @@ server_thread = threading.Thread(target=serv.start)
 server_thread.start()
 
 time.sleep(0.1)
-dest_port = int(input("Target port: "))
 clie = Client(user_id, socket.gethostname(), dest_port, password)
+clie.set_cipher_mode(encryption_mode)
 
-choose_encryption_mode(clie)
-
-input("Press enter to connect\n")
 clie.start()
 
 # Run GUI
