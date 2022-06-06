@@ -21,18 +21,33 @@ class Client:
 
         self.__on_message_sent = []
         self.__on_file_sent = []
+        self.__on_file_transfer_started = []
+        self.__on_file_transfer_progress = []
 
     def subscribe_message_sent(self, callback: Callable[[str], None]):
         self.__on_message_sent.append(callback)
+
+
+    def subscribe_file_sent(self, callback: Callable[[str], None]):
+        self.__on_file_sent.append(callback)
+
+    def subscribe_file_transfer_started(self, callback: Callable[[], None]):
+        self.__on_file_transfer_started.append(callback)
+
+    def subscribe_file_transfer_progress(self, callback: Callable[[int], None]):
+        self.__on_file_transfer_progress.append(callback)
+
+    def use_ecb(self):
+        self.__msg_encryptor.use_ecb()
+
+    def use_cbc(self):
+        self.__msg_encryptor.use_cbc()
 
     def set_cipher_mode(self, mode):
         if mode == AES.MODE_ECB:
             self.__msg_encryptor.use_ecb()
         elif mode == AES.MODE_CBC:
             self.__msg_encryptor.use_cbc()
-
-    def subscribe_file_sent(self, callback: Callable[[str], None]):
-        self.__on_file_sent.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -71,28 +86,34 @@ class Client:
         filename = bytearray(filename_str, "utf-8")
 
         with open(filepath, 'rb') as f:
-            # sending file name
-            file_name_msg = Message.file_name_message(self.self_id, filename)
+            content = f.read()
+
+            full_segments_n = len(content)//Message.file_message_len()
+            progress = 0
+
+            file_name_msg = Message.file_name_message(self.self_id, filename, segments_count=full_segments_n+1)
             self.__send(file_name_msg)
             self.__invoke_file_sent(file_name_msg)
-            Log.log(f"message {file_name_msg} sent")
 
-            # sending content of the actual file
-            content = f.read()
-            Log.log(f"the file is {len(content)} bytes long")
-            full_segments_n = len(content)//Message.file_message_len()
-
+            self.__invoke_file_transfer_started()
             for segment in range(full_segments_n):
                 msg_content = content[segment*Message.file_message_len():(segment+1)*Message.file_message_len()]
+
                 Log.log(f"segment {segment}: {msg_content}")
+
                 file_msg = Message.file_message(self.self_id, msg_content)
                 self.__send(file_msg)
+                progress += 1
+                self.__invoke_file_transfer_progress(progress*100//(full_segments_n + 1))
 
             msg_content = content[full_segments_n*Message.file_message_len():]
             if len(msg_content) > 0:
+
                 Log.log(f"last segment: {msg_content}")
+
                 file_msg = Message.file_message(self.self_id, msg_content)
                 self.__send(file_msg)
+            self.__invoke_file_transfer_progress(100)
 
     def __send(self, msg: Message):
         self.__msg_encryptor.encrypt(msg)
@@ -118,6 +139,14 @@ class Client:
         for callback in self.__on_message_sent:
             callback(msg)
 
-    def __invoke_file_sent(self, msg:str):
+    def __invoke_file_sent(self, msg: str):
         for callback in self.__on_file_sent:
             callback(msg)
+
+    def __invoke_file_transfer_started(self):
+        for callback in self.__on_file_transfer_started:
+            callback()
+
+    def __invoke_file_transfer_progress(self, progress: int):
+        for callback in self.__on_file_transfer_progress:
+            callback(progress)

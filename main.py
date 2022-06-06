@@ -14,22 +14,17 @@ from gui_login import LoginWindow
 from filewriter import FileWriter
 from logging import Log
 
-
 def receive_message(msg: Message):
     Log.log(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
 
 
-def choose_encryption_mode() -> AES.MODE_CBC | AES.MODE_ECB:
-    while True:
-        selected_mode = input(f"Choose encryption mode (ECB or CBC):")
+def choose_encryption_mode(client):
+    if credentials["ecb"]:
+        client.use_ecb()
+    elif credentials["cbc"]:
+        client.use_cbc()
 
-        if selected_mode.lower() == "ecb":
-            return AES.MODE_ECB
-        elif selected_mode.lower() == "cbc":
-            return AES.MODE_CBC
-
-        Log.log("Unrecognised encryption mode")
 
 
 def receive_file_name(msg: Message):
@@ -42,14 +37,15 @@ def receive_file(msg: Message):
     Log.log(f"File message content received from user {msg.sender_id}: {msg.stringbody()}")
     filewri.write(msg.body)
 
-credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None}
-
 
 def login(input: dict):
     global credentials
     for key in input:
         credentials[key] = input[key]
 
+
+
+credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_": None}
 
 Log.enabled = False
 
@@ -81,14 +77,22 @@ server_thread.start()
 
 time.sleep(0.1)
 clie = Client(user_id, socket.gethostname(), dest_port, password)
+choose_encryption_mode(clie)
+clie.start()
+
+filewri = FileWriter(os.path.join("downloaded", username))
 clie.set_cipher_mode(encryption_mode)
 
-clie.start()
+
 
 # Run GUI
 window = ChatWindow(user_id)
 window.subscribe_message_send(clie.send_text)
 window.subscribe_file_send(clie.send_file)
+clie.subscribe_file_transfer_started(window.start_progress_bar)
+clie.subscribe_file_transfer_progress(window.proceed_progress_bar)
+serv.subscribe_file_transfer_started(window.start_progress_bar)
+serv.subscribe_file_transfer_progress(window.proceed_progress_bar)
 
 window.run()
 window.close()

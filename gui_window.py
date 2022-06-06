@@ -11,6 +11,7 @@ class ChatWindow:
         self.__on_file_send = []
 
         self.__window = self.__create_window()
+        self.progress_bar = self.__window.find_element("_PROGRESSBAR_")
 
         self.message_displayer = MessageDisplayer(self.__window, user_id)
         self.message_displayer.display_messages()
@@ -23,6 +24,12 @@ class ChatWindow:
 
     def receive_message(self, msg, sender_id):
         self.message_displayer.receive_message(msg, sender_id)
+
+    def start_progress_bar(self):
+        self.progress_bar.UpdateBar(0)
+
+    def proceed_progress_bar(self, val):
+        self.progress_bar.UpdateBar(val)
 
     def run(self):
         while True:
@@ -58,6 +65,7 @@ class ChatWindow:
             [sg.InputText(key='_FILEBROWSER_', do_not_clear=False, size=14),
              sg.FileBrowse('Choose file', enable_events=True, change_submits=True),
              sg.Button('Send File', bind_return_key=True, pad=((0, 20), (20, 20)))],
+            [sg.ProgressBar(100, key="_PROGRESSBAR_", size=(30, 20), visible=True, bar_color=("#006697", "#00111a"))],
             [sg.Text(text="DżejEs&EjEl Software")]
         ]
 
@@ -70,6 +78,8 @@ class ChatWindow:
             callback(msg)
 
     def __invoke_file_send(self, filepath):
+
         Log.log(f"invoking file send: {filepath}")
+
         for callback in self.__on_file_send:
             callback(filepath)

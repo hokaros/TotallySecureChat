@@ -16,11 +16,13 @@ class LoginWindow:
         sg.theme('DarkBlue')
         layout = [[sg.Text('Your port:'), sg.InputText(key='_PORT_', size=20)],
                   [sg.Text('Receiver\'s port:'), sg.InputText(key='_RECEIVER_PORT_', size=20)],
-                  [sg.Text('Password:'), sg.InputText(key='_PASSWORD_', size=20)],
+                  [sg.Text('Password:'), sg.InputText(key='_PASSWORD_', size=20, password_char='*')],
+                  [sg.Radio('ECB encryption', "ENC", default=False, key="ecb"),
+                   sg.Radio('CBC encryption', "ENC", default=True, key="cbc")],
                   [sg.Button('Confirm', bind_return_key=True, pad=((0, 20), (20, 20))),
                    sg.Button('Cancel', bind_return_key=True, pad=((0, 20), (20, 20)))]]
 
-        return sg.Window('Totally Secure Chat login', layout)
+        return sg.Window('Totally Secure Chat', layout)
 
     def run(self):
         while True:

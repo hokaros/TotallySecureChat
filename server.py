@@ -17,9 +17,14 @@ class Server:
         self.__msg_encryptor = MessageEncryptor(str(user_id), password)
         self.__receive_buffer = bytearray()
 
+        self.current_file_segments = 1
+        self.received_segments = 0
+
         self.__on_message_received = []
         self.__on_file_name_received = []
         self.__on_file_received = []
+        self.__on_file_transfer_started = []
+        self.__on_file_transfer_progress = []
 
     def subscribe_message_received(self, callback: Callable[[Message], None]):
         self.__on_message_received.append(callback)
@@ -29,6 +34,12 @@ class Server:
 
     def subscribe_file_name_received(self, callback: Callable[[Message], None]):
         self.__on_file_name_received.append(callback)
+
+    def subscribe_file_transfer_started(self, callback: Callable[[], None]):
+        self.__on_file_transfer_started.append(callback)
+
+    def subscribe_file_transfer_progress(self, callback: Callable[[int], None]):
+        self.__on_file_transfer_progress.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -89,11 +100,16 @@ class Server:
             Log.log(f"New session key: {msg.body}")
             self.__msg_encryptor.session_key = msg.body
         elif msg.type == MessageType.FILE_NAME_MESSAGE:
+            self.current_file_segments = msg.segments_count
+            self.received_segments = 0
             Log.log(f"New file coming: {msg.body}")
             self.__invoke_file_name_received(msg)
+            self.__invoke_file_transfer_started()
         elif msg.type == MessageType.FILE_MESSAGE:
-            Log.log(f"New file content: {msg.body}")
+            self.received_segments += 1
             self.__invoke_file_received(msg)
+            self.__invoke_file_transfer_progress(self.received_segments*100//self.current_file_segments)
+            Log.log(f"New file content: {msg.body}")
         elif msg.type == MessageType.PUBLIC_KEY:
             Log.log(f"Public key received from user {msg.sender_id}")
             key = RSA.import_key(msg.body)
@@ -110,3 +126,11 @@ class Server:
     def __invoke_file_name_received(self, file: Message):
         for callback in self.__on_file_name_received:
             callback(file)
+
+    def __invoke_file_transfer_started(self):
+        for callback in self.__on_file_transfer_started:
+            callback()
+
+    def __invoke_file_transfer_progress(self, progress: int):
+        for callback in self.__on_file_transfer_progress:
+            callback(progress)
