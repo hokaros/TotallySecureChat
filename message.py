@@ -5,6 +5,7 @@ from typing import List
 SENDER_ID_BYTES = 4
 MESSAGE_TYPE_BYTES = 1
 MESSAGE_LENGTH_BYTES = 4
+FILE_SEGMENTS_COUNT_BYTES = 4
 FILE_MESSAGE_LEN = 64  # the length of file message segment in bytes
 
 
@@ -30,11 +31,12 @@ class MessageType(Enum):
 
 # Low-level message representation
 class Message:
-    def __init__(self, sender_id: int, type: MessageType, body: bytearray, receiver_id=None):
+    def __init__(self, sender_id: int, type: MessageType, body: bytearray, receiver_id=None, segments_count=1):
         self.sender_id = sender_id
         self.type = type
         self.body = body
         self.receiver_id = receiver_id
+        self.segments_count = segments_count
 
     def stringbody(self) -> str:
         """Returns the body as a string"""
@@ -44,6 +46,7 @@ class Message:
         b = self.sender_id.to_bytes(SENDER_ID_BYTES, "little")
         b = bytearray(b)
         b.extend(self.type.value.to_bytes(MESSAGE_TYPE_BYTES, "little"))
+        b.extend(self.segments_count.to_bytes(FILE_SEGMENTS_COUNT_BYTES, "little"))
         b.extend(self.bytes_size.to_bytes(MESSAGE_LENGTH_BYTES, "little"))
         print("Length: ", self.bytes_size)
         b.extend(self.body)
@@ -51,7 +54,7 @@ class Message:
 
     @property
     def bytes_size(self) -> int:
-        return SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + MESSAGE_LENGTH_BYTES + len(self.body)
+        return SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + MESSAGE_LENGTH_BYTES + FILE_SEGMENTS_COUNT_BYTES + len(self.body)
 
     @staticmethod
     def file_message_len():
@@ -59,19 +62,24 @@ class Message:
 
     @staticmethod
     def from_bytes(bytes: bytes):
+        print("decoding message")
         byte_cursor = 0
 
-        msg_sender_id = int.from_bytes(bytes[byte_cursor : byte_cursor + SENDER_ID_BYTES], "little")
+        msg_sender_id = int.from_bytes(bytes[byte_cursor: byte_cursor + SENDER_ID_BYTES], "little")
         byte_cursor += SENDER_ID_BYTES
-
-        msg_type = MessageType(int.from_bytes(bytes[byte_cursor : byte_cursor + MESSAGE_TYPE_BYTES], "little"))
+        print(f"sender id: {msg_sender_id}")
+        msg_type = MessageType(int.from_bytes(bytes[byte_cursor: byte_cursor + MESSAGE_TYPE_BYTES], "little"))
         byte_cursor += MESSAGE_TYPE_BYTES
-
+        print(f"msg_type: {msg_type}")
+        segments_count = int.from_bytes(bytes[byte_cursor: byte_cursor + FILE_SEGMENTS_COUNT_BYTES], "little")
+        byte_cursor += FILE_SEGMENTS_COUNT_BYTES
+        print(f"segments_count:{segments_count}")
         # no need to read message length, because we consume all the bytes
         byte_cursor += MESSAGE_LENGTH_BYTES
 
         msg_body = bytearray(bytes[byte_cursor:])
-        return Message(msg_sender_id, msg_type, msg_body)
+        print(f"message body:{msg_body}")
+        return Message(msg_sender_id, msg_type, msg_body, segments_count=segments_count)
 
     @staticmethod
     def multiple_from_bytes(bytes: bytes | bytearray):
@@ -93,14 +101,14 @@ class Message:
 
     @staticmethod
     def read_first_message_length(bytes: bytes) -> int:
-        start_index = SENDER_ID_BYTES + MESSAGE_TYPE_BYTES
+        start_index = SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + FILE_SEGMENTS_COUNT_BYTES
         length_bytes = bytes[start_index : start_index + MESSAGE_LENGTH_BYTES]
         return int.from_bytes(length_bytes, "little")
 
     @staticmethod
     def can_read_length(bytes) -> bool:
         """Tells if the bytes are long enough to contain info about message length"""
-        if len(bytes) >= SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + MESSAGE_LENGTH_BYTES:
+        if len(bytes) >= SENDER_ID_BYTES + MESSAGE_TYPE_BYTES + FILE_SEGMENTS_COUNT_BYTES + MESSAGE_LENGTH_BYTES:
             return True
         return False
 
@@ -114,8 +122,8 @@ class Message:
         return cls(sender_id, MessageType.FILE_MESSAGE, body)
 
     @classmethod
-    def file_name_message(cls, sender_id: int, body: bytearray):
-        return cls(sender_id, MessageType.FILE_NAME_MESSAGE, body)
+    def file_name_message(cls, sender_id: int, body: bytearray, segments_count: int):
+        return cls(sender_id, MessageType.FILE_NAME_MESSAGE, body, segments_count=segments_count)
 
     @classmethod
     def session_key(cls, sender_id, session_key: bytearray, receiver_id):

@@ -5,10 +5,11 @@ class FileWriter:
     def __init__(self, directory):
         self.directory = directory
         self.file_name = None
-        try:
-            os.mkdir(directory)
-        except OSError as error:
-            print(error)
+        if not os.path.isdir(directory):
+            try:
+                os.mkdir(directory)
+            except OSError as error:
+                print(error)
 
     def create_file(self, file_name):
         print("create file")

@@ -41,8 +41,7 @@ def login(input: dict):
         credentials[key] = input[key]
 
 
-credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_":None}
-
+credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_": None}
 login_window = LoginWindow()
 login_window.subscribe_confirm(login)
 
@@ -67,14 +66,18 @@ server_thread.start()
 time.sleep(0.1)
 clie = Client(user_id, socket.gethostname(), dest_port, password)
 choose_encryption_mode(clie)
+clie.start()
 
 filewri = FileWriter(os.path.join("downloaded", username))
-clie.start()
 
 # Run GUI
 window = ChatWindow(user_id)
 window.subscribe_message_send(clie.send_text)
 window.subscribe_file_send(clie.send_file)
+clie.subscribe_file_transfer_started(window.start_progress_bar)
+clie.subscribe_file_transfer_progress(window.proceed_progress_bar)
+serv.subscribe_file_transfer_started(window.start_progress_bar)
+serv.subscribe_file_transfer_progress(window.proceed_progress_bar)
 
 window.run()
 window.close()
