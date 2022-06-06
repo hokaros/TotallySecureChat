@@ -2,9 +2,8 @@ import socket
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
-from message import Message, MessageType
+from message import Message
 from encryption import MessageEncryptor
-from Crypto.Random import get_random_bytes
 
 
 class Client:
@@ -38,6 +37,12 @@ class Client:
         self.__socket.connect((self.server_ip, self.server_port))
 
         print(f"Client connected to {self.server_ip}:{self.server_port}")
+
+        # Send public key
+        key_bytes = self.__msg_encryptor.my_public_key.export_key()
+        key_msg = Message.public_key(self.self_id, bytearray(key_bytes))
+        self.__send(key_msg)
+        print(f"Public key sent")
 
     def stop(self):
         self.__socket.close()

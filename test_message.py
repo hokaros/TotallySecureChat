@@ -1,6 +1,7 @@
 import unittest
 from message import Message
 from copy import deepcopy
+from Crypto.PublicKey import RSA
 
 
 class MessageConvertingTestCase(unittest.TestCase):
@@ -52,6 +53,17 @@ class MessageConvertingTestCase(unittest.TestCase):
         self.assertEqual(len(in_strings), len(out_strings))
         for expected, actual in zip(in_strings, out_strings):
             self.assertEqual(expected, actual)
+
+    def test_rsa_key(self):
+        # Arrange
+        in_key = RSA.generate(1024).public_key()
+
+        # Act
+        key_msg = Message.public_key(0, bytearray(in_key.export_key()))
+        out_key = RSA.import_key(key_msg.body)
+
+        # Assert
+        self.assertEqual(in_key, out_key)
 
 
 if __name__ == '__main__':

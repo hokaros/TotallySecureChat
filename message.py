@@ -9,23 +9,27 @@ FILE_MESSAGE_LEN = 64  # the length of file message segment in bytes
 
 
 class MessageType(Enum):
+
+    # Public key which can be used to send messages to the other side
+    # -> body is a non-encrypted key
+    PUBLIC_KEY = 0
     
     # Session key transfer:
     # -> body can be decrypted using our private key
-    SESSION_KEY = 0
+    SESSION_KEY = 1
     
     # Text self:
     # -> body can be decrypted using a valid session key
-    TEXT_MESSAGE = 1
+    TEXT_MESSAGE = 2
 
     # File message:
     # -> body can be decrypted using a valid session key
     # -> needs to be transferred in parts
-    FILE_MESSAGE = 2
+    FILE_MESSAGE = 3
 
     # File name message:
     # -> body is a name of a file
-    FILE_NAME_MESSAGE = 3
+    FILE_NAME_MESSAGE = 4
 
 
 # Low-level message representation
@@ -34,7 +38,7 @@ class Message:
         self.sender_id = sender_id
         self.type = type
         self.body = body
-        self.receiver_id = receiver_id
+        self.receiver_id = receiver_id  # receiver id is not sent
 
     def stringbody(self) -> str:
         """Returns the body as a string"""
@@ -118,5 +122,9 @@ class Message:
         return cls(sender_id, MessageType.FILE_NAME_MESSAGE, body)
 
     @classmethod
-    def session_key(cls, sender_id, session_key: bytearray, receiver_id):
+    def session_key(cls, sender_id: int, session_key: bytearray, receiver_id):
         return cls(sender_id, MessageType.SESSION_KEY, session_key, receiver_id=receiver_id)
+
+    @classmethod
+    def public_key(cls, sender_id: int, key: bytearray):
+        return cls(sender_id, MessageType.PUBLIC_KEY, key)

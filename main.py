@@ -8,7 +8,7 @@ from server import Server
 from client import Client
 from gui_window import ChatWindow
 from message import Message
-from filewriter import FileWriter
+from filewriter import FileWriter, UserDirectory
 
 
 def receive_message(msg: Message):
@@ -47,6 +47,10 @@ user_id = receive_port
 username = str(user_id)
 password = input("Password: ")
 
+UserDirectory.main = UserDirectory(user_id)
+filewri = FileWriter(os.path.join(UserDirectory.main.directory, "downloaded"))
+
+# Start server and client
 serv = Server(receive_port, user_id, password)
 serv.subscribe_message_received(receive_message)
 serv.subscribe_file_name_received(receive_file_name)
@@ -60,8 +64,6 @@ dest_port = int(input("Target port: "))
 clie = Client(user_id, socket.gethostname(), dest_port, password)
 
 choose_encryption_mode(clie)
-
-filewri = FileWriter(os.path.join("downloaded", username))
 
 input("Press enter to connect\n")
 clie.start()
