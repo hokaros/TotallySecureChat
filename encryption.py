@@ -2,7 +2,7 @@ from Crypto.Cipher import AES, PKCS1_OAEP
 from Crypto.Random import get_random_bytes
 from Crypto.Util.Padding import pad, unpad
 from message import Message, MessageType
-from pki_manager import PkiManager
+from pki_manager import PkiManager, RsaKey
 
 
 class EncryptedMessage:
@@ -106,6 +106,14 @@ class MessageEncryptor:
         if user_id != "":
             self.__pki = PkiManager(user_id, password)
 
+    @property
+    def pki(self) -> PkiManager:
+        return self.__pki
+
+    @property
+    def my_public_key(self) -> RsaKey:
+        return self.__pki.public_key
+
     def use_ecb(self):
         self.__mode = AES.MODE_ECB
 
@@ -143,7 +151,7 @@ class MessageEncryptor:
         return plaintext
 
     def encrypt_with_public(self, msg: bytes, receiver_id: str) -> bytes:
-        key = PkiManager.load_public_key(receiver_id)
+        key = self.__pki.load_public_key(receiver_id)
         return PKCS1_OAEP.new(key).encrypt(msg)
 
     def decrypt_with_private(self, msg: bytes) -> bytes:
@@ -155,12 +163,16 @@ class MessageEncryptor:
     def encrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
             msg.body = self.encrypt_with_public(msg.body, msg.receiver_id)
+        elif msg.type == MessageType.PUBLIC_KEY:
+            pass  # don't encrypt
         else:
             msg.body = self.encrypt_bytes(msg.body)
 
     def decrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
             msg.body = self.decrypt_with_private(msg.body)
+        elif msg.type == MessageType.PUBLIC_KEY:
+            pass  # not encrypted
         else:
             msg.body = self.decrypt_bytes(msg.body)
 

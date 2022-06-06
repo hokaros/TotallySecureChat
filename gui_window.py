@@ -1,5 +1,7 @@
 from gui_messages import *
 from typing import Callable
+from logging import Log
+
 import PySimpleGUI as sg
 
 
@@ -76,5 +78,8 @@ class ChatWindow:
             callback(msg)
 
     def __invoke_file_send(self, filepath):
+
+        Log.log(f"invoking file send: {filepath}")
+
         for callback in self.__on_file_send:
             callback(filepath)
