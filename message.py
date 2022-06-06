@@ -49,7 +49,6 @@ class Message:
         b = bytearray(b)
         b.extend(self.type.value.to_bytes(MESSAGE_TYPE_BYTES, "little"))
         b.extend(self.bytes_size.to_bytes(MESSAGE_LENGTH_BYTES, "little"))
-        print("Length: ", self.bytes_size)
         b.extend(self.body)
         return b
 

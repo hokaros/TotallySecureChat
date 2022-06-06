@@ -1,4 +1,5 @@
 import os
+from logging import Log
 
 
 class FileWriter:
@@ -11,11 +12,11 @@ class FileWriter:
             print(error)
 
     def create_file(self, file_name):
-        print("create file")
+        Log.log("create file")
         self.file_name = file_name
         path = os.path.join(self.directory, self.file_name)
         if os.path.exists(path):
-            print(f"File {self.file_name} already exists")
+            Log.log(f"File {self.file_name} already exists")
             os.remove(path)
 
         open(path, "x")

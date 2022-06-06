@@ -1,10 +1,11 @@
 import socket
 from typing import Callable
+from Crypto.PublicKey import RSA
 
 from thread_utilities import ThreadSafeVariable
 from message import Message, MessageType
 from encryption import MessageEncryptor
-from Crypto.PublicKey import RSA
+from logging import Log
 
 
 class Server:
@@ -35,12 +36,12 @@ class Server:
         self.__socket.bind((host, self.port))
 
         self.__socket.listen()
-        print(f"Server listening on {host}:{self.port}")
+        Log.log(f"Server listening on {host}:{self.port}")
 
         while True:
             try:
                 connection, addr = self.__socket.accept()
-                print("Got connection from", addr)
+                Log.log(f"Got connection from {addr}")
                 while True:
                     bytes = connection.recv(1024)
                     self.__on_bytes_received(bytes)
@@ -56,7 +57,7 @@ class Server:
                 break
 
         self.__socket.close()
-        print(f"Server stopped")
+        Log.log(f"Server stopped")
 
     def stop(self):
         self.__socket.close()
@@ -66,7 +67,7 @@ class Server:
         if len(bytes) == 0:
             return
 
-        print(f"Received {len(bytes)} bytes")
+        Log.log(f"Received {len(bytes)} bytes")
         self.__receive_buffer.extend(bytes)
 
         # Consume from the buffer
@@ -80,21 +81,21 @@ class Server:
         try:
             self.__msg_encryptor.decrypt(msg)
         except ValueError:
-            print("Key incorrect or message corrupted")
+            Log.log("Key incorrect or message corrupted")
 
         if msg.type == MessageType.TEXT_MESSAGE:
             self.__invoke_message_received(msg)
         elif msg.type == MessageType.SESSION_KEY:
-            print("New session key: ", msg.body)
+            Log.log(f"New session key: {msg.body}")
             self.__msg_encryptor.session_key = msg.body
         elif msg.type == MessageType.FILE_NAME_MESSAGE:
-            print("New file coming: ", msg.body)
+            Log.log(f"New file coming: {msg.body}")
             self.__invoke_file_name_received(msg)
         elif msg.type == MessageType.FILE_MESSAGE:
-            print("New file content: ", msg.body)
+            Log.log(f"New file content: {msg.body}")
             self.__invoke_file_received(msg)
         elif msg.type == MessageType.PUBLIC_KEY:
-            print("Public key received from user", msg.sender_id)
+            Log.log(f"Public key received from user {msg.sender_id}")
             key = RSA.import_key(msg.body)
             self.__msg_encryptor.pki.save_public_key(str(msg.sender_id), key)
 
