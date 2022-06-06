@@ -2,9 +2,9 @@ import socket
 from typing import Callable
 
 from thread_utilities import ThreadSafeVariable
-from message import Message, MessageType
+from message import Message
 from encryption import MessageEncryptor
-from Crypto.Random import get_random_bytes
+from Crypto.Cipher import AES
 
 
 class Client:
@@ -24,20 +24,31 @@ class Client:
     def subscribe_message_sent(self, callback: Callable[[str], None]):
         self.__on_message_sent.append(callback)
 
-    def use_ecb(self):
-        self.__msg_encryptor.use_ecb()
-
-    def use_cbc(self):
-        self.__msg_encryptor.use_cbc()
+    def set_cipher_mode(self, mode):
+        if mode == AES.MODE_ECB:
+            self.__msg_encryptor.use_ecb()
+        elif mode == AES.MODE_CBC:
+            self.__msg_encryptor.use_cbc()
 
     def subscribe_file_sent(self, callback: Callable[[str], None]):
         self.__on_file_sent.append(callback)
 
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.__socket.connect((self.server_ip, self.server_port))
 
-        print(f"Client connected to {self.server_ip}:{self.server_port}")
+        print("Connecting...")
+        while True:
+            if self.__should_stop.get():
+                return
+
+            try:
+                self.__socket.connect((self.server_ip, self.server_port))
+                print(f"Client connected to {self.server_ip}:{self.server_port}")
+                break
+            except ConnectionRefusedError:
+                pass  # Retry immediately
+
+        self.__send_public_key()
 
     def stop(self):
         self.__socket.close()
@@ -85,6 +96,12 @@ class Client:
     def __send(self, msg: Message):
         self.__msg_encryptor.encrypt(msg)
         self.__socket.send(msg.to_bytes())
+
+    def __send_public_key(self):
+        key_bytes = self.__msg_encryptor.my_public_key.export_key()
+        key_msg = Message.public_key(self.self_id, bytearray(key_bytes))
+        self.__send(key_msg)
+        print(f"Public key sent")
 
     def __send_session_key(self):
         session_key = MessageEncryptor.generate_session_key()

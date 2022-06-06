@@ -4,6 +4,7 @@ from typing import Callable
 from thread_utilities import ThreadSafeVariable
 from message import Message, MessageType
 from encryption import MessageEncryptor
+from Crypto.PublicKey import RSA
 
 
 class Server:
@@ -92,6 +93,10 @@ class Server:
         elif msg.type == MessageType.FILE_MESSAGE:
             print("New file content: ", msg.body)
             self.__invoke_file_received(msg)
+        elif msg.type == MessageType.PUBLIC_KEY:
+            print("Public key received from user", msg.sender_id)
+            key = RSA.import_key(msg.body)
+            self.__msg_encryptor.pki.save_public_key(str(msg.sender_id), key)
 
     def __invoke_message_received(self, msg: Message):
         for callback in self.__on_message_received:
