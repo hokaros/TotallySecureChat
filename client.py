@@ -5,6 +5,7 @@ from thread_utilities import ThreadSafeVariable
 from message import Message
 from encryption import MessageEncryptor
 from Crypto.Cipher import AES
+from logging import Log
 
 
 class Client:
@@ -36,14 +37,14 @@ class Client:
     def start(self):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-        print("Connecting...")
+        print(f"Connecting to {self.server_ip}:{self.server_port}...")
         while True:
             if self.__should_stop.get():
                 return
 
             try:
                 self.__socket.connect((self.server_ip, self.server_port))
-                print(f"Client connected to {self.server_ip}:{self.server_port}")
+                Log.log(f"Client connected to {self.server_ip}:{self.server_port}")
                 break
             except ConnectionRefusedError:
                 pass  # Retry immediately
@@ -53,7 +54,7 @@ class Client:
     def stop(self):
         self.__socket.close()
         self.__should_stop.set(True)
-        print(f"Client disconnected")
+        Log.log(f"Client disconnected")
 
     def send_text(self, msg: str):
         self.__send_session_key()
@@ -74,22 +75,22 @@ class Client:
             file_name_msg = Message.file_name_message(self.self_id, filename)
             self.__send(file_name_msg)
             self.__invoke_file_sent(file_name_msg)
-            print(f"message {file_name_msg} sent")
+            Log.log(f"message {file_name_msg} sent")
 
             # sending content of the actual file
             content = f.read()
-            print(f"the file is {len(content)} bytes long")
+            Log.log(f"the file is {len(content)} bytes long")
             full_segments_n = len(content)//Message.file_message_len()
 
             for segment in range(full_segments_n):
                 msg_content = content[segment*Message.file_message_len():(segment+1)*Message.file_message_len()]
-                print(f"segment {segment}: {msg_content}")
+                Log.log(f"segment {segment}: {msg_content}")
                 file_msg = Message.file_message(self.self_id, msg_content)
                 self.__send(file_msg)
 
             msg_content = content[full_segments_n*Message.file_message_len():]
             if len(msg_content) > 0:
-                print(f"last segment: {msg_content}")
+                Log.log(f"last segment: {msg_content}")
                 file_msg = Message.file_message(self.self_id, msg_content)
                 self.__send(file_msg)
 
@@ -101,7 +102,7 @@ class Client:
         key_bytes = self.__msg_encryptor.my_public_key.export_key()
         key_msg = Message.public_key(self.self_id, bytearray(key_bytes))
         self.__send(key_msg)
-        print(f"Public key sent")
+        Log.log(f"Public key sent")
 
     def __send_session_key(self):
         session_key = MessageEncryptor.generate_session_key()
@@ -109,7 +110,7 @@ class Client:
         receiver_id = str(self.server_port)
         msg = Message.session_key(self.self_id, bytearray(session_key), receiver_id)
         self.__send(msg)
-        print("Sent session key: ", session_key)
+        Log.log(f"Sent session key: {session_key}")
 
         self.__msg_encryptor.session_key = session_key
 

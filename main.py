@@ -12,12 +12,13 @@ from filewriter import FileWriter, UserDirectory
 from Crypto.Cipher import AES
 from gui_login import LoginWindow
 from filewriter import FileWriter
-
+from logging import Log
 
 
 def receive_message(msg: Message):
-    print(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
+    Log.log(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
+
 
 def choose_encryption_mode() -> AES.MODE_CBC | AES.MODE_ECB:
     while True:
@@ -28,17 +29,17 @@ def choose_encryption_mode() -> AES.MODE_CBC | AES.MODE_ECB:
         elif selected_mode.lower() == "cbc":
             return AES.MODE_CBC
 
-        print("Unrecognised encryption mode")
+        Log.log("Unrecognised encryption mode")
 
 
 def receive_file_name(msg: Message):
-    print(f"File message received from user {msg.sender_id}: {msg.stringbody()}")
+    Log.log(f"File message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
     filewri.create_file(msg.stringbody())
 
 
 def receive_file(msg: Message):
-    print(f"File message content received from user {msg.sender_id}: {msg.stringbody()}")
+    Log.log(f"File message content received from user {msg.sender_id}: {msg.stringbody()}")
     filewri.write(msg.body)
 
 credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None}
@@ -49,6 +50,8 @@ def login(input: dict):
     for key in input:
         credentials[key] = input[key]
 
+
+Log.enabled = False
 
 login_window = LoginWindow()
 login_window.subscribe_confirm(login)
@@ -93,4 +96,4 @@ window.close()
 # Close connections
 clie.stop()
 serv.stop()
-print("Stopped all services")
+Log.log("Stopped all services")
