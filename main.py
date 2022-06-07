@@ -14,6 +14,7 @@ from gui_login import LoginWindow
 from filewriter import FileWriter
 from logging import Log
 
+
 def receive_message(msg: Message):
     Log.log(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
@@ -24,7 +25,6 @@ def choose_encryption_mode(client):
         client.use_ecb()
     elif credentials["cbc"]:
         client.use_cbc()
-
 
 
 def receive_file_name(msg: Message):
@@ -44,7 +44,6 @@ def login(input: dict):
         credentials[key] = input[key]
 
 
-
 credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_": None}
 
 Log.enabled = False
@@ -61,7 +60,6 @@ dest_port = int(credentials["_RECEIVER_PORT_"])
 
 password = credentials["_PASSWORD_"]
 username = str(user_id)
-encryption_mode = choose_encryption_mode()
 
 UserDirectory.main = UserDirectory(user_id)
 filewri = FileWriter(os.path.join(UserDirectory.main.directory, "downloaded"))
@@ -81,7 +79,6 @@ choose_encryption_mode(clie)
 clie.start()
 
 filewri = FileWriter(os.path.join("downloaded", username))
-clie.set_cipher_mode(encryption_mode)
 
 
 

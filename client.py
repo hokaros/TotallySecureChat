@@ -27,7 +27,6 @@ class Client:
     def subscribe_message_sent(self, callback: Callable[[str], None]):
         self.__on_message_sent.append(callback)
 
-
     def subscribe_file_sent(self, callback: Callable[[str], None]):
         self.__on_file_sent.append(callback)
 
