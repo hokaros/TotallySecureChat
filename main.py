@@ -14,17 +14,17 @@ from gui_login import LoginWindow
 from filewriter import FileWriter
 from logging import Log
 
+
 def receive_message(msg: Message):
     Log.log(f"Message received from user {msg.sender_id}: {msg.stringbody()}")
     window.receive_message(msg.stringbody(), msg.sender_id)
 
 
-def choose_encryption_mode(client):
+def choose_encryption_mode():
     if credentials["ecb"]:
-        client.use_ecb()
+        return AES.MODE_ECB
     elif credentials["cbc"]:
-        client.use_cbc()
-
+        return AES.MODE_CBC
 
 
 def receive_file_name(msg: Message):
@@ -42,7 +42,6 @@ def login(input: dict):
     global credentials
     for key in input:
         credentials[key] = input[key]
-
 
 
 credentials = {"_PORT_": None, "_RECEIVER_PORT_": None, "_PASSWORD_": None, "_ENC_MODE_": None}
@@ -77,11 +76,8 @@ server_thread.start()
 
 time.sleep(0.1)
 clie = Client(user_id, socket.gethostname(), dest_port, password)
-choose_encryption_mode(clie)
-clie.start()
-
-filewri = FileWriter(os.path.join("downloaded", username))
 clie.set_cipher_mode(encryption_mode)
+clie.start()
 
 
 
