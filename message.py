@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import List
+from logging import Log
 
 
 SENDER_ID_BYTES = 4
@@ -65,23 +66,23 @@ class Message:
 
     @staticmethod
     def from_bytes(bytes: bytes):
-        print("decoding message")
+        Log.log("decoding message")
         byte_cursor = 0
 
         msg_sender_id = int.from_bytes(bytes[byte_cursor: byte_cursor + SENDER_ID_BYTES], "little")
         byte_cursor += SENDER_ID_BYTES
-        print(f"sender id: {msg_sender_id}")
+        Log.log(f"sender id: {msg_sender_id}")
         msg_type = MessageType(int.from_bytes(bytes[byte_cursor: byte_cursor + MESSAGE_TYPE_BYTES], "little"))
         byte_cursor += MESSAGE_TYPE_BYTES
-        print(f"msg_type: {msg_type}")
+        Log.log(f"msg_type: {msg_type}")
         segments_count = int.from_bytes(bytes[byte_cursor: byte_cursor + FILE_SEGMENTS_COUNT_BYTES], "little")
         byte_cursor += FILE_SEGMENTS_COUNT_BYTES
-        print(f"segments_count:{segments_count}")
+        Log.log(f"segments_count:{segments_count}")
         # no need to read message length, because we consume all the bytes
         byte_cursor += MESSAGE_LENGTH_BYTES
 
         msg_body = bytearray(bytes[byte_cursor:])
-        print(f"message body:{msg_body}")
+        Log.log(f"message body:{msg_body}")
         return Message(msg_sender_id, msg_type, msg_body, segments_count=segments_count)
 
     @staticmethod
