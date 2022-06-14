@@ -1,5 +1,7 @@
 import unittest
 import os
+
+from filewriter import UserDirectory
 from pki_manager import PkiManager
 
 
@@ -8,6 +10,8 @@ class PkiManagerTestCase(unittest.TestCase):
         # Arrange
         user_id = "101"
         password = "secret-password"
+        UserDirectory.main = UserDirectory(int(user_id))
+
         generating_manager = PkiManager(user_id, password)
         wrong_password_manager = PkiManager(user_id, password + "nonono")
         correct_password_manager = PkiManager(user_id, password)

@@ -96,7 +96,10 @@ class PkiManager:
             return None
 
         with open(key_file, "rb") as f:
-            return RSA.import_key(f.read(), passphrase=self.__password_hash())
+            try:
+                return RSA.import_key(f.read(), passphrase=self.__password_hash())
+            except ValueError:
+                return RSA.generate(KEY_LENGTH)
 
     def __password_hash(self) -> str:
         return SHA256.new(

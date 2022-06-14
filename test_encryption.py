@@ -2,6 +2,7 @@ import os.path
 import unittest
 from encryption import *
 from Crypto.Random import get_random_bytes
+from filewriter import UserDirectory
 
 
 class EncryptionTestCase(unittest.TestCase):
@@ -102,6 +103,7 @@ class EncryptionTestCase(unittest.TestCase):
     def test_asymmetric_encrypt_decrypt_equal(self):
         # Arrange
         receiver_id = "8080"
+        UserDirectory.main = UserDirectory(int(receiver_id))
         if os.path.exists(PkiManager.private_key_filepath(receiver_id)):
             os.remove(PkiManager.private_key_filepath(receiver_id))
 
@@ -122,6 +124,7 @@ class EncryptionTestCase(unittest.TestCase):
     def test_asymmetric_wrong_password(self):
         # Arrange
         receiver_id = "8080"
+        UserDirectory.main = UserDirectory(int(receiver_id))
         if os.path.exists(PkiManager.private_key_filepath(receiver_id)):
             os.remove(PkiManager.private_key_filepath(receiver_id))
 

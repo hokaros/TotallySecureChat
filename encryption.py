@@ -163,7 +163,8 @@ class MessageEncryptor:
     def encrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
             msg.body = self.encrypt_with_public(msg.body, msg.receiver_id)
-        elif msg.type == MessageType.PUBLIC_KEY:
+        elif msg.type == MessageType.PUBLIC_KEY\
+                or msg.type == MessageType.FILE_NAME_MESSAGE:
             pass  # don't encrypt
         else:
             msg.body = self.encrypt_bytes(msg.body)
@@ -171,7 +172,8 @@ class MessageEncryptor:
     def decrypt(self, msg: Message) -> None:
         if msg.type == MessageType.SESSION_KEY:
             msg.body = self.decrypt_with_private(msg.body)
-        elif msg.type == MessageType.PUBLIC_KEY:
+        elif msg.type == MessageType.PUBLIC_KEY\
+                or msg.type == MessageType.FILE_NAME_MESSAGE:
             pass  # not encrypted
         else:
             msg.body = self.decrypt_bytes(msg.body)
